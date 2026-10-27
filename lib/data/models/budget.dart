@@ -98,6 +98,36 @@ class Budget {
         synced,
       );
 
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'user_id': userId,
+      'month': month,
+      'mode': mode.name,
+      'category_id': categoryId,
+      'amount': amount,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+      'is_deleted': isDeleted ? 1 : 0,
+      'synced': synced ? 1 : 0,
+    };
+  }
+
+  factory Budget.fromMap(Map<String, dynamic> map) {
+    return Budget(
+      id: map['id'] as String,
+      userId: map['user_id'] as String,
+      month: map['month'] as String,
+      mode: BudgetMode.values.byName(map['mode'] as String),
+      categoryId: map['category_id'] as String?,
+      amount: (map['amount'] as num).toInt(),
+      createdAt: DateTime.parse(map['created_at'] as String),
+      updatedAt: DateTime.parse(map['updated_at'] as String),
+      isDeleted: (map['is_deleted'] as int? ?? 0) == 1,
+      synced: (map['synced'] as int? ?? 0) == 1,
+    );
+  }
+
   @override
   String toString() =>
       'Budget(id: $id, month: $month, mode: $mode, categoryId: $categoryId, amount: $amount)';

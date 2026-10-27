@@ -9,12 +9,14 @@ class UdhaarTile extends StatelessWidget {
   const UdhaarTile({
     super.key,
     required this.udhaar,
+    this.walletName,
     this.onTap,
     this.onSettle,
     this.onDelete,
   });
 
   final Udhaar udhaar;
+  final String? walletName;
   final VoidCallback? onTap;
   final VoidCallback? onSettle;
   final VoidCallback? onDelete;
@@ -80,12 +82,24 @@ class UdhaarTile extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 2),
-                          Text(
-                            udhaar.direction.displayName,
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: directionColor,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          Row(
+                            children: [
+                              Text(
+                                udhaar.direction.displayName,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: directionColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              if (walletName != null) ...[
+                                Text(
+                                  ' • $walletName',
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: theme.textTheme.bodySmall?.color,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ],
                       ),

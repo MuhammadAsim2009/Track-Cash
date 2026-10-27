@@ -96,6 +96,27 @@ class _AddTransferScreenState extends ConsumerState<AddTransferScreen> {
       return;
     }
 
+    // Strictly validate that source wallet has sufficient balance
+    final walletsRepo = ref.read(walletsRepositoryProvider);
+    final sourceBalance = await walletsRepo.getWalletBalance(_fromWalletId!);
+    if (!mounted) return;
+    if (amount > sourceBalance) {
+      final walletList = ref.read(walletsStreamProvider).value ?? [];
+      final fromWallet =
+          walletList.where((w) => w.id == _fromWalletId).firstOrNull;
+      final walletName = fromWallet?.name ?? 'Source wallet';
+      final errorMsg =
+          'Insufficient balance in $walletName! Available: ${CurrencyFormatter.format(sourceBalance)}';
+      setState(() => _errorText = errorMsg);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMsg),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
     final now = DateTime.now();
     final transfer = Transfer(
@@ -235,6 +256,7 @@ class _AddTransferScreenState extends ConsumerState<AddTransferScreen> {
                             child: Row(
                               children: wallets.map((w) {
                                 final isSelected = _fromWalletId == w.id;
+                                final bal = ref.watch(walletBalanceProvider(w.id)).value ?? w.openingBalance;
                                 return Padding(
                                   padding: const EdgeInsets.only(right: 8.0),
                                   child: ChoiceChip(
@@ -243,11 +265,12 @@ class _AddTransferScreenState extends ConsumerState<AddTransferScreen> {
                                         color: isSelected
                                             ? Colors.white
                                             : theme.colorScheme.primary),
-                                    label: Text(w.name),
+                                    label: Text('${w.name} (${CurrencyFormatter.format(bal)})'),
                                     selected: isSelected,
                                     onSelected: (_) {
                                       setState(() {
                                         _fromWalletId = w.id;
+                                        _errorText = null;
                                         if (_toWalletId == w.id) {
                                           _toWalletId = null;
                                         }
@@ -275,6 +298,7 @@ class _AddTransferScreenState extends ConsumerState<AddTransferScreen> {
                               children: wallets.map((w) {
                                 final isSelected = _toWalletId == w.id;
                                 final isSame = _fromWalletId == w.id;
+                                final bal = ref.watch(walletBalanceProvider(w.id)).value ?? w.openingBalance;
                                 return Padding(
                                   padding: const EdgeInsets.only(right: 8.0),
                                   child: ChoiceChip(
@@ -283,7 +307,7 @@ class _AddTransferScreenState extends ConsumerState<AddTransferScreen> {
                                         color: isSelected
                                             ? Colors.white
                                             : colors.income),
-                                    label: Text(w.name),
+                                    label: Text('${w.name} (${CurrencyFormatter.format(bal)})'),
                                     selected: isSelected,
                                     onSelected: isSame
                                         ? null

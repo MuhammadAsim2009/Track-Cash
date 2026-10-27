@@ -106,6 +106,40 @@ class TransactionEntry {
         synced,
       );
 
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'user_id': userId,
+      'wallet_id': walletId,
+      'category_id': categoryId,
+      'type': type.name,
+      'amount': amount,
+      'note': note,
+      'date': date.toIso8601String(),
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+      'is_deleted': isDeleted ? 1 : 0,
+      'synced': synced ? 1 : 0,
+    };
+  }
+
+  factory TransactionEntry.fromMap(Map<String, dynamic> map) {
+    return TransactionEntry(
+      id: map['id'] as String,
+      userId: map['user_id'] as String,
+      walletId: map['wallet_id'] as String,
+      categoryId: map['category_id'] as String,
+      type: TransactionType.values.byName(map['type'] as String),
+      amount: (map['amount'] as num).toInt(),
+      note: map['note'] as String?,
+      date: DateTime.parse(map['date'] as String),
+      createdAt: DateTime.parse(map['created_at'] as String),
+      updatedAt: DateTime.parse(map['updated_at'] as String),
+      isDeleted: (map['is_deleted'] as int? ?? 0) == 1,
+      synced: (map['synced'] as int? ?? 0) == 1,
+    );
+  }
+
   @override
   String toString() =>
       'TransactionEntry(id: $id, type: $type, amount: $amount, date: $date, note: $note)';

@@ -26,6 +26,7 @@ class Udhaar {
   const Udhaar({
     required this.id,
     required this.userId,
+    this.walletId,
     required this.personName,
     required this.amount,
     required this.direction,
@@ -41,6 +42,7 @@ class Udhaar {
 
   final String id;
   final String userId;
+  final String? walletId;
   final String personName;
   /// Amount in whole rupees.
   final int amount;
@@ -57,6 +59,7 @@ class Udhaar {
   Udhaar copyWith({
     String? id,
     String? userId,
+    String? walletId,
     String? personName,
     int? amount,
     UdhaarDirection? direction,
@@ -72,6 +75,7 @@ class Udhaar {
     return Udhaar(
       id: id ?? this.id,
       userId: userId ?? this.userId,
+      walletId: walletId ?? this.walletId,
       personName: personName ?? this.personName,
       amount: amount ?? this.amount,
       direction: direction ?? this.direction,
@@ -92,6 +96,7 @@ class Udhaar {
     return other is Udhaar &&
         other.id == id &&
         other.userId == userId &&
+        other.walletId == walletId &&
         other.personName == personName &&
         other.amount == amount &&
         other.direction == direction &&
@@ -109,6 +114,7 @@ class Udhaar {
   int get hashCode => Object.hash(
         id,
         userId,
+        walletId,
         personName,
         amount,
         direction,
@@ -122,7 +128,45 @@ class Udhaar {
         synced,
       );
 
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'user_id': userId,
+      'wallet_id': walletId,
+      'person_name': personName,
+      'amount': amount,
+      'direction': direction.name,
+      'due_date': dueDate.toIso8601String(),
+      'status': status.name,
+      'note': note,
+      'notification_id': notificationId,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+      'is_deleted': isDeleted ? 1 : 0,
+      'synced': synced ? 1 : 0,
+    };
+  }
+
+  factory Udhaar.fromMap(Map<String, dynamic> map) {
+    return Udhaar(
+      id: map['id'] as String,
+      userId: map['user_id'] as String,
+      walletId: map['wallet_id'] as String?,
+      personName: map['person_name'] as String,
+      amount: (map['amount'] as num).toInt(),
+      direction: UdhaarDirection.values.byName(map['direction'] as String),
+      dueDate: DateTime.parse(map['due_date'] as String),
+      status: UdhaarStatus.values.byName(map['status'] as String),
+      note: map['note'] as String?,
+      notificationId: map['notification_id'] as int?,
+      createdAt: DateTime.parse(map['created_at'] as String),
+      updatedAt: DateTime.parse(map['updated_at'] as String),
+      isDeleted: (map['is_deleted'] as int? ?? 0) == 1,
+      synced: (map['synced'] as int? ?? 0) == 1,
+    );
+  }
+
   @override
   String toString() =>
-      'Udhaar(id: $id, person: $personName, amount: $amount, direction: $direction, status: $status, due: $dueDate)';
+      'Udhaar(id: $id, person: $personName, amount: $amount, direction: $direction, walletId: $walletId, status: $status, due: $dueDate)';
 }

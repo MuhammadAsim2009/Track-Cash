@@ -33,6 +33,8 @@ class _AddEditUdhaarScreenState extends ConsumerState<AddEditUdhaarScreen> {
 
   late UdhaarDirection _direction;
   late DateTime _dueDate;
+  int? _selectedPresetDays;
+  String? _selectedWalletId;
   String? _nameError;
   String? _amountError;
   bool _isSaving = false;
@@ -49,10 +51,16 @@ class _AddEditUdhaarScreenState extends ConsumerState<AddEditUdhaarScreen> {
       _direction = u.direction;
       _dueDate = u.dueDate;
       _noteController.text = u.note ?? '';
+      _selectedWalletId = u.walletId;
     } else {
       _direction = widget.initialDirection ?? UdhaarDirection.take;
       _dueDate = DateTime.now().add(const Duration(days: 7));
+      _selectedPresetDays = 7;
     }
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
   @override
@@ -71,7 +79,10 @@ class _AddEditUdhaarScreenState extends ConsumerState<AddEditUdhaarScreen> {
       lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
     );
     if (picked != null) {
-      setState(() => _dueDate = picked);
+      setState(() {
+        _dueDate = picked;
+        _selectedPresetDays = null;
+      });
     }
   }
 
@@ -90,12 +101,52 @@ class _AddEditUdhaarScreenState extends ConsumerState<AddEditUdhaarScreen> {
     }
     setState(() => _amountError = null);
 
+    if (_selectedWalletId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a wallet')),
+      );
+      return;
+    }
+
+    // Validation for "I have to take" (lent money): money leaves wallet, cannot go negative
+    if (_direction == UdhaarDirection.take) {
+      final walletsRepo = ref.read(walletsRepositoryProvider);
+      final currentBalance =
+          await walletsRepo.getWalletBalance(_selectedWalletId!);
+      // If editing existing 'take' udhaar from same wallet, add back previous amount
+      final effectiveBalance = _isEditing &&
+              widget.initialUdhaar?.direction == UdhaarDirection.take &&
+              widget.initialUdhaar?.walletId == _selectedWalletId &&
+              widget.initialUdhaar?.status == UdhaarStatus.pending
+          ? currentBalance + widget.initialUdhaar!.amount
+          : currentBalance;
+
+      if (!mounted) return;
+      if (amount > effectiveBalance) {
+        final walletList = ref.read(walletsStreamProvider).value ?? [];
+        final selectedWallet =
+            walletList.where((w) => w.id == _selectedWalletId).firstOrNull;
+        final walletName = selectedWallet?.name ?? 'Selected wallet';
+        final errorMsg =
+            'Insufficient balance in $walletName! Available: ${CurrencyFormatter.format(effectiveBalance)}';
+        setState(() => _amountError = errorMsg);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
+        return;
+      }
+    }
+
     setState(() => _isSaving = true);
     final now = DateTime.now();
     final repo = ref.read(udhaarRepositoryProvider);
 
     if (_isEditing) {
       final updated = widget.initialUdhaar!.copyWith(
+        walletId: _selectedWalletId,
         personName: name,
         amount: amount,
         direction: _direction,
@@ -110,6 +161,7 @@ class _AddEditUdhaarScreenState extends ConsumerState<AddEditUdhaarScreen> {
       final newUdhaar = Udhaar(
         id: _uuid.v4(),
         userId: kDemoUserId,
+        walletId: _selectedWalletId,
         personName: name,
         amount: amount,
         direction: _direction,
@@ -176,16 +228,62 @@ class _AddEditUdhaarScreenState extends ConsumerState<AddEditUdhaarScreen> {
             children: [
               // Direction Toggle
               SegmentedButton<UdhaarDirection>(
-                segments: const [
+                segments: [
                   ButtonSegment(
                     value: UdhaarDirection.take,
-                    label: Text('I have to take'),
-                    icon: Icon(Icons.call_received),
+                    label: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'I have to take',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          Text(
+                            '(I am giving)',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: _direction == UdhaarDirection.take
+                                  ? FontWeight.w500
+                                  : FontWeight.normal,
+                              color: _direction == UdhaarDirection.take
+                                  ? Theme.of(context).colorScheme.onSecondaryContainer
+                                  : Theme.of(context).textTheme.bodySmall?.color,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    icon: const Icon(Icons.call_received),
                   ),
                   ButtonSegment(
                     value: UdhaarDirection.give,
-                    label: Text('I have to give'),
-                    icon: Icon(Icons.call_made),
+                    label: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'I have to give',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          Text(
+                            '(I am taking)',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: _direction == UdhaarDirection.give
+                                  ? FontWeight.w500
+                                  : FontWeight.normal,
+                              color: _direction == UdhaarDirection.give
+                                  ? Theme.of(context).colorScheme.onSecondaryContainer
+                                  : Theme.of(context).textTheme.bodySmall?.color,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    icon: const Icon(Icons.call_made),
                   ),
                 ],
                 selected: {_direction},
@@ -222,6 +320,60 @@ class _AddEditUdhaarScreenState extends ConsumerState<AddEditUdhaarScreen> {
               ),
               const SizedBox(height: 16),
 
+              // Wallet Selector
+              Text('Wallet', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              ref.watch(walletsStreamProvider).when(
+                data: (wallets) {
+                  // For "take" (giving money out), exclude savings if countInDailyExpense=false
+                  final selectableWallets = _direction == UdhaarDirection.take
+                      ? wallets.where((w) =>
+                          !(w.type == WalletType.savings && !w.countInDailyExpense)).toList()
+                      : wallets;
+
+                  if (_selectedWalletId != null &&
+                      !selectableWallets.any((w) => w.id == _selectedWalletId)) {
+                    _selectedWalletId = null;
+                  }
+                  if (_selectedWalletId == null && selectableWallets.isNotEmpty) {
+                    _selectedWalletId = selectableWallets.first.id;
+                  }
+
+                  if (selectableWallets.isEmpty) {
+                    return const Text(
+                      'No wallets available.',
+                      style: TextStyle(color: Colors.grey),
+                    );
+                  }
+
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: selectableWallets.map((w) {
+                        final isSelected = _selectedWalletId == w.id;
+                        final balance = ref.watch(walletBalanceProvider(w.id)).value ?? w.openingBalance;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: ChoiceChip(
+                            label: Text('${w.name} (${CurrencyFormatter.format(balance)})'),
+                            selected: isSelected,
+                            onSelected: (_) {
+                              setState(() {
+                                _selectedWalletId = w.id;
+                                _amountError = null;
+                              });
+                            },
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  );
+                },
+                loading: () => const LinearProgressIndicator(),
+                error: (e, _) => Text('Failed to load wallets: $e'),
+              ),
+              const SizedBox(height: 16),
+
               // Due Date Picker
               InkWell(
                 onTap: _pickDueDate,
@@ -241,27 +393,26 @@ class _AddEditUdhaarScreenState extends ConsumerState<AddEditUdhaarScreen> {
               Wrap(
                 spacing: 8,
                 children: [
-                  ActionChip(
-                    label: const Text('Tomorrow'),
-                    onPressed: () => setState(() =>
-                        _dueDate = DateTime.now().add(const Duration(days: 1))),
-                  ),
-                  ActionChip(
-                    label: const Text('In 3 days'),
-                    onPressed: () => setState(() =>
-                        _dueDate = DateTime.now().add(const Duration(days: 3))),
-                  ),
-                  ActionChip(
-                    label: const Text('In 1 week'),
-                    onPressed: () => setState(() =>
-                        _dueDate = DateTime.now().add(const Duration(days: 7))),
-                  ),
-                  ActionChip(
-                    label: const Text('In 1 month'),
-                    onPressed: () => setState(() =>
-                        _dueDate = DateTime.now().add(const Duration(days: 30))),
-                  ),
-                ],
+                  (label: 'Tomorrow', days: 1),
+                  (label: 'In 3 days', days: 3),
+                  (label: 'In 1 week', days: 7),
+                  (label: 'In 1 month', days: 30),
+                ].map((preset) {
+                  final targetDate = DateTime.now().add(Duration(days: preset.days));
+                  final isSelected = _selectedPresetDays == preset.days ||
+                      _isSameDay(_dueDate, targetDate);
+
+                  return ChoiceChip(
+                    label: Text(preset.label),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      setState(() {
+                        _dueDate = DateTime.now().add(Duration(days: preset.days));
+                        _selectedPresetDays = preset.days;
+                      });
+                    },
+                  );
+                }).toList(),
               ),
               const SizedBox(height: 16),
 

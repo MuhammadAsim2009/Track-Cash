@@ -105,6 +105,40 @@ class AppCategory {
         synced,
       );
 
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'user_id': userId,
+      'name': name,
+      'type': type.name,
+      'icon': icon,
+      'color': color,
+      'is_default': isDefault ? 1 : 0,
+      'is_hidden': isHidden ? 1 : 0,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+      'is_deleted': isDeleted ? 1 : 0,
+      'synced': synced ? 1 : 0,
+    };
+  }
+
+  factory AppCategory.fromMap(Map<String, dynamic> map) {
+    return AppCategory(
+      id: map['id'] as String,
+      userId: map['user_id'] as String,
+      name: map['name'] as String,
+      type: CategoryType.values.byName(map['type'] as String),
+      icon: map['icon'] as String,
+      color: (map['color'] as num).toInt(),
+      isDefault: (map['is_default'] as int? ?? 0) == 1,
+      isHidden: (map['is_hidden'] as int? ?? 0) == 1,
+      createdAt: DateTime.parse(map['created_at'] as String),
+      updatedAt: DateTime.parse(map['updated_at'] as String),
+      isDeleted: (map['is_deleted'] as int? ?? 0) == 1,
+      synced: (map['synced'] as int? ?? 0) == 1,
+    );
+  }
+
   @override
   String toString() =>
       'AppCategory(id: $id, name: $name, type: $type, isDefault: $isDefault, isHidden: $isHidden)';

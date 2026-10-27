@@ -191,7 +191,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             walletsAsync.when(
               data: (wallets) {
                 return SizedBox(
-                  height: 130,
+                  height: 120,
                   child: ListView.separated(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     scrollDirection: Axis.horizontal,
@@ -204,13 +204,32 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       final balance = balanceAsync.value ?? wallet.openingBalance;
 
                       return SizedBox(
-                        width: 170,
+                        width: wallet.type == WalletType.savings ? 190 : 170,
                         child: WalletCard(
                           wallet: wallet,
                           balance: balance,
                           onTap: () {
                             _showWalletDetailsDialog(context, wallet, balance);
                           },
+                          onToggleDailyExpense: wallet.type == WalletType.savings
+                              ? (val) async {
+                                  final updated =
+                                      wallet.copyWith(countInDailyExpense: val);
+                                  await ref
+                                      .read(walletsRepositoryProvider)
+                                      .updateWallet(updated);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(val
+                                            ? 'Savings money will now count in daily expense'
+                                            : 'Savings money excluded from daily expense'),
+                                        duration: const Duration(seconds: 2),
+                                      ),
+                                    );
+                                  }
+                                }
+                              : null,
                         ),
                       );
                     },
@@ -319,10 +338,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                   );
                 }
+                final walletsList = walletsAsync.value ?? <Wallet>[];
+                final walletsMap = {for (final w in walletsList) w.id: w.name};
+
                 return Column(
                   children: udhaarList.take(2).map((u) {
                     return UdhaarTile(
                       udhaar: u,
+                      walletName: u.walletId != null ? walletsMap[u.walletId] : null,
                       onSettle: () async {
                         await ref
                             .read(udhaarRepositoryProvider)
@@ -483,6 +506,28 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             const SizedBox(height: 4),
             Text('Current Balance: ${CurrencyFormatter.format(balance)}',
                 style: const TextStyle(fontWeight: FontWeight.bold)),
+            if (wallet.type == WalletType.savings) ...[
+              const Divider(height: 20),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                title: const Text(
+                  'Count in Daily Expense',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  wallet.countInDailyExpense
+                      ? 'Savings money is counted in daily expense'
+                      : 'Savings money is excluded from daily expense',
+                  style: const TextStyle(fontSize: 12),
+                ),
+                value: wallet.countInDailyExpense,
+                onChanged: (val) async {
+                  final updated = wallet.copyWith(countInDailyExpense: val);
+                  await ref.read(walletsRepositoryProvider).updateWallet(updated);
+                  if (ctx.mounted) Navigator.of(ctx).pop();
+                },
+              ),
+            ],
           ],
         ),
         actions: [

@@ -1,46 +1,50 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../fake/fake_budgets_repository.dart';
-import '../fake/fake_categories_repository.dart';
-import '../fake/fake_transactions_repository.dart';
-import '../fake/fake_transfers_repository.dart';
-import '../fake/fake_udhaar_repository.dart';
-import '../fake/fake_wallets_repository.dart';
 import '../models/models.dart';
 import 'budgets_repository.dart';
 import 'categories_repository.dart';
+import 'sqlite/sqlite_budgets_repository.dart';
+import 'sqlite/sqlite_categories_repository.dart';
+import 'sqlite/sqlite_transactions_repository.dart';
+import 'sqlite/sqlite_transfers_repository.dart';
+import 'sqlite/sqlite_udhaar_repository.dart';
+import 'sqlite/sqlite_wallets_repository.dart';
 import 'transactions_repository.dart';
 import 'transfers_repository.dart';
 import 'udhaar_repository.dart';
 import 'wallets_repository.dart';
 
-// --- Base Repository Providers ---
+// --- Base SQLite Repository Providers ---
 
-final transactionsRepositoryProvider = Provider<TransactionsRepository>((ref) {
-  return FakeTransactionsRepository();
-});
-
-final transfersRepositoryProvider = Provider<TransfersRepository>((ref) {
-  return FakeTransfersRepository();
+final walletsRepositoryProvider = Provider<WalletsRepository>((ref) {
+  return SqliteWalletsRepository();
 });
 
 final categoriesRepositoryProvider = Provider<CategoriesRepository>((ref) {
-  return FakeCategoriesRepository();
+  return SqliteCategoriesRepository();
+});
+
+final transactionsRepositoryProvider = Provider<TransactionsRepository>((ref) {
+  final walletsRepo = ref.watch(walletsRepositoryProvider) as SqliteWalletsRepository;
+  return SqliteTransactionsRepository(
+    onDataChanged: walletsRepo.notifyListeners,
+  );
+});
+
+final transfersRepositoryProvider = Provider<TransfersRepository>((ref) {
+  final walletsRepo = ref.watch(walletsRepositoryProvider) as SqliteWalletsRepository;
+  return SqliteTransfersRepository(
+    onDataChanged: walletsRepo.notifyListeners,
+  );
 });
 
 final budgetsRepositoryProvider = Provider<BudgetsRepository>((ref) {
-  return FakeBudgetsRepository();
+  return SqliteBudgetsRepository();
 });
 
 final udhaarRepositoryProvider = Provider<UdhaarRepository>((ref) {
-  return FakeUdhaarRepository();
-});
-
-final walletsRepositoryProvider = Provider<WalletsRepository>((ref) {
-  final txRepo = ref.watch(transactionsRepositoryProvider);
-  final trRepo = ref.watch(transfersRepositoryProvider);
-  return FakeWalletsRepository(
-    transactionsRepository: txRepo,
-    transfersRepository: trRepo,
+  final walletsRepo = ref.watch(walletsRepositoryProvider) as SqliteWalletsRepository;
+  return SqliteUdhaarRepository(
+    onDataChanged: walletsRepo.notifyListeners,
   );
 });
 
@@ -56,15 +60,17 @@ final walletBalanceProvider =
   ref.watch(walletsStreamProvider);
   ref.watch(transactionsStreamProvider);
   ref.watch(transfersStreamProvider);
+  ref.watch(udhaarStreamProvider);
   final repo = ref.watch(walletsRepositoryProvider);
   return repo.getWalletBalance(walletId);
 });
 
 final totalBalanceProvider = FutureProvider<int>((ref) async {
-  // Re-evaluate when wallets, transactions or transfers change
+  // Re-evaluate when wallets, transactions, transfers or udhaar change
   ref.watch(walletsStreamProvider);
   ref.watch(transactionsStreamProvider);
   ref.watch(transfersStreamProvider);
+  ref.watch(udhaarStreamProvider);
   final repo = ref.watch(walletsRepositoryProvider);
   return repo.getTotalBalance();
 });

@@ -100,18 +100,51 @@ class _AddEditTransactionScreenState
       return;
     }
 
-    // Check if expense makes wallet negative (warn, don't block, per docs/rules.md)
+    // Strictly validate that an expense does not make the wallet balance negative
     if (_selectedType == TransactionType.expense) {
+      final walletList = ref.read(walletsStreamProvider).value ?? [];
+      final selectedWallet =
+          walletList.where((w) => w.id == _selectedWalletId).firstOrNull;
+
+      // Block expense on a savings wallet that is excluded from daily expense
+      if (selectedWallet != null &&
+          selectedWallet.type == WalletType.savings &&
+          !selectedWallet.countInDailyExpense) {
+        const errorMsg =
+            'Savings wallet is excluded from daily expense. Enable the Daily toggle to use it.';
+        setState(() => _amountError = errorMsg);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(errorMsg),
+            backgroundColor: Colors.orange.shade700,
+          ),
+        );
+        return;
+      }
+
       final walletsRepo = ref.read(walletsRepositoryProvider);
       final currentBalance =
           await walletsRepo.getWalletBalance(_selectedWalletId!);
-      if (currentBalance - amount < 0 && mounted) {
+      // If editing an existing expense from the same wallet, add back its previous amount
+      final effectiveBalance = _isEditing &&
+              widget.initialTransaction?.type == TransactionType.expense &&
+              widget.initialTransaction?.walletId == _selectedWalletId
+          ? currentBalance + widget.initialTransaction!.amount
+          : currentBalance;
+
+      if (!mounted) return;
+      if (amount > effectiveBalance) {
+        final walletName = selectedWallet?.name ?? 'Selected wallet';
+        final errorMsg =
+            'Insufficient balance in $walletName! Available: ${CurrencyFormatter.format(effectiveBalance)}';
+        setState(() => _amountError = errorMsg);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Warning: This expense makes the wallet balance negative.'),
-            duration: Duration(seconds: 3),
+          SnackBar(
+            content: Text(errorMsg),
+            backgroundColor: Colors.red.shade700,
           ),
         );
+        return;
       }
     }
 
@@ -277,21 +310,44 @@ class _AddEditTransactionScreenState
               const SizedBox(height: 8),
               walletsAsync.when(
                 data: (wallets) {
-                  if (_selectedWalletId == null && wallets.isNotEmpty) {
-                    _selectedWalletId = wallets.first.id;
+                  // For expense, exclude savings wallets with countInDailyExpense=false
+                  final selectableWallets = _selectedType == TransactionType.expense
+                      ? wallets.where((w) =>
+                          !(w.type == WalletType.savings && !w.countInDailyExpense)).toList()
+                      : wallets;
+
+                  // Reset selection if the current wallet is no longer selectable
+                  if (_selectedWalletId != null &&
+                      !selectableWallets.any((w) => w.id == _selectedWalletId)) {
+                    _selectedWalletId = null;
                   }
+                  if (_selectedWalletId == null && selectableWallets.isNotEmpty) {
+                    _selectedWalletId = selectableWallets.first.id;
+                  }
+
+                  if (selectableWallets.isEmpty) {
+                    return const Text(
+                      'No wallets available for this transaction type.',
+                      style: TextStyle(color: Colors.grey),
+                    );
+                  }
+
                   return SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
-                      children: wallets.map((w) {
+                      children: selectableWallets.map((w) {
                         final isSelected = _selectedWalletId == w.id;
+                        final balance = ref.watch(walletBalanceProvider(w.id)).value ?? w.openingBalance;
                         return Padding(
                           padding: const EdgeInsets.only(right: 8.0),
                           child: ChoiceChip(
-                            label: Text(w.name),
+                            label: Text('${w.name} (${CurrencyFormatter.format(balance)})'),
                             selected: isSelected,
                             onSelected: (_) {
-                              setState(() => _selectedWalletId = w.id);
+                              setState(() {
+                                _selectedWalletId = w.id;
+                                _amountError = null;
+                              });
                             },
                           ),
                         );

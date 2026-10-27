@@ -90,6 +90,38 @@ class Transfer {
         synced,
       );
 
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'user_id': userId,
+      'from_wallet_id': fromWalletId,
+      'to_wallet_id': toWalletId,
+      'amount': amount,
+      'note': note,
+      'date': date.toIso8601String(),
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+      'is_deleted': isDeleted ? 1 : 0,
+      'synced': synced ? 1 : 0,
+    };
+  }
+
+  factory Transfer.fromMap(Map<String, dynamic> map) {
+    return Transfer(
+      id: map['id'] as String,
+      userId: map['user_id'] as String,
+      fromWalletId: map['from_wallet_id'] as String,
+      toWalletId: map['to_wallet_id'] as String,
+      amount: (map['amount'] as num).toInt(),
+      note: map['note'] as String?,
+      date: DateTime.parse(map['date'] as String),
+      createdAt: DateTime.parse(map['created_at'] as String),
+      updatedAt: DateTime.parse(map['updated_at'] as String),
+      isDeleted: (map['is_deleted'] as int? ?? 0) == 1,
+      synced: (map['synced'] as int? ?? 0) == 1,
+    );
+  }
+
   @override
   String toString() =>
       'Transfer(id: $id, from: $fromWalletId, to: $toWalletId, amount: $amount, date: $date)';

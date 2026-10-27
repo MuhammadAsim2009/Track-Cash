@@ -25,6 +25,7 @@ class Wallet {
     required this.updatedAt,
     this.isDeleted = false,
     this.synced = false,
+    this.countInDailyExpense = true,
   });
 
   final String id;
@@ -36,6 +37,8 @@ class Wallet {
   final DateTime updatedAt;
   final bool isDeleted;
   final bool synced;
+  /// Whether money in this wallet counts towards daily expenses.
+  final bool countInDailyExpense;
 
   Wallet copyWith({
     String? id,
@@ -47,6 +50,7 @@ class Wallet {
     DateTime? updatedAt,
     bool? isDeleted,
     bool? synced,
+    bool? countInDailyExpense,
   }) {
     return Wallet(
       id: id ?? this.id,
@@ -58,6 +62,7 @@ class Wallet {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       synced: synced ?? this.synced,
+      countInDailyExpense: countInDailyExpense ?? this.countInDailyExpense,
     );
   }
 
@@ -73,7 +78,8 @@ class Wallet {
         other.createdAt == createdAt &&
         other.updatedAt == updatedAt &&
         other.isDeleted == isDeleted &&
-        other.synced == synced;
+        other.synced == synced &&
+        other.countInDailyExpense == countInDailyExpense;
   }
 
   @override
@@ -87,9 +93,40 @@ class Wallet {
         updatedAt,
         isDeleted,
         synced,
+        countInDailyExpense,
       );
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'user_id': userId,
+      'name': name,
+      'type': type.name,
+      'opening_balance': openingBalance,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+      'is_deleted': isDeleted ? 1 : 0,
+      'synced': synced ? 1 : 0,
+      'count_in_daily_expense': countInDailyExpense ? 1 : 0,
+    };
+  }
+
+  factory Wallet.fromMap(Map<String, dynamic> map) {
+    return Wallet(
+      id: map['id'] as String,
+      userId: map['user_id'] as String,
+      name: map['name'] as String,
+      type: WalletType.values.byName(map['type'] as String),
+      openingBalance: (map['opening_balance'] as num).toInt(),
+      createdAt: DateTime.parse(map['created_at'] as String),
+      updatedAt: DateTime.parse(map['updated_at'] as String),
+      isDeleted: (map['is_deleted'] as int? ?? 0) == 1,
+      synced: (map['synced'] as int? ?? 0) == 1,
+      countInDailyExpense: (map['count_in_daily_expense'] as int? ?? 1) == 1,
+    );
+  }
 
   @override
   String toString() =>
-      'Wallet(id: $id, name: $name, type: $type, openingBalance: $openingBalance, isDeleted: $isDeleted, synced: $synced)';
+      'Wallet(id: $id, name: $name, type: $type, openingBalance: $openingBalance, countInDailyExpense: $countInDailyExpense, isDeleted: $isDeleted)';
 }

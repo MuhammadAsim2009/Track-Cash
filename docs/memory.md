@@ -32,20 +32,32 @@
     - Tab selection state managed cleanly in Riverpod (`navigationIndexProvider`) with state preserved via `IndexedStack`.
     - Smooth 200ms selection transition for tab icons and visible labels.
   - `flutter analyze` passing with 0 issues / 0 warnings.
+- Phase 2 SQLite Implementation (Local Dynamic Database):
+  - Added dependencies `sqflite`, `path`, and `sqflite_common_ffi` (for desktop testing support).
+  - Implemented `toMap()` and `fromMap()` serialization across all domain models (`Wallet`, `AppCategory`, `TransactionEntry`, `Transfer`, `Budget`, `Udhaar`).
+  - Created [`AppDatabase`](file:///e:/track_cash/lib/data/local/app_database.dart) singleton in `lib/data/local/` with SQLite tables, schema indexes, and initial data seeding.
+  - Built production SQLite repositories with reactive broadcast streams and live SQL balance aggregations:
+    - [`SqliteWalletsRepository`](file:///e:/track_cash/lib/data/repositories/sqlite/sqlite_wallets_repository.dart)
+    - [`SqliteCategoriesRepository`](file:///e:/track_cash/lib/data/repositories/sqlite/sqlite_categories_repository.dart)
+    - [`SqliteTransactionsRepository`](file:///e:/track_cash/lib/data/repositories/sqlite/sqlite_transactions_repository.dart)
+    - [`SqliteTransfersRepository`](file:///e:/track_cash/lib/data/repositories/sqlite/sqlite_transfers_repository.dart)
+    - [`SqliteBudgetsRepository`](file:///e:/track_cash/lib/data/repositories/sqlite/sqlite_budgets_repository.dart)
+    - [`SqliteUdhaarRepository`](file:///e:/track_cash/lib/data/repositories/sqlite/sqlite_udhaar_repository.dart)
+  - Swapped Riverpod repository providers in [`repository_providers.dart`](file:///e:/track_cash/lib/data/repositories/repository_providers.dart) to the SQLite implementations.
+  - App startup in [`main.dart`](file:///e:/track_cash/lib/main.dart) initializes `AppDatabase` before rendering.
+  - All screens are now dynamic with full CRUD and reactive state propagation via SQLite.
+  - `flutter analyze` passing with 0 issues / 0 warnings.
 
 ## In progress
-- Phase 1 Complete. Ready for Phase 2: SQLite database implementation.
+- Phase 2 Complete. Ready for Phase 3: Firebase Auth integration.
 
 ## Next step
-- Phase 2 — SQLite (make it dynamic):
-  - Add `sqflite` and `path` packages.
-  - Create `lib/data/local/` (database helper, schema version 1, table migrations, DAOs).
-  - Implement real SQLite repositories implementing the exact same repository interfaces (`WalletsRepository`, `CategoriesRepository`, `TransactionsRepository`, etc.).
-  - Default wallets and default categories seeded on first database creation.
-  - Dynamic balance and budget calculations in SQL.
-  - Soft-delete handling (`is_deleted = 1`).
-  - Udhaar local notifications for due date reminders (`flutter_local_notifications` + `timezone`).
-  - Swap Riverpod provider implementations from fake repositories to SQLite repositories.
+- Phase 3 — Firebase Auth:
+  - Configure Firebase project & Firebase CLI.
+  - Add `firebase_core` and `firebase_auth`.
+  - Connect real registration, login, logout, password reset, and auth gate.
+  - Replace temporary local user ID with Firebase `uid`.
+  - Ensure data isolation per user and clean local DB on logout.
 
 ## Decisions
 - Build order: full UI with dummy data → SQLite → Firebase Auth → Firebase sync.

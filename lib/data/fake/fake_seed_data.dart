@@ -38,7 +38,7 @@ class FakeSeedData {
           userId: kDemoUserId,
           name: 'Cash in hand',
           type: WalletType.cash,
-          openingBalance: 8500,
+          openingBalance: 0,
           createdAt: _now.subtract(const Duration(days: 30)),
           updatedAt: _now.subtract(const Duration(days: 30)),
         ),
@@ -47,7 +47,8 @@ class FakeSeedData {
           userId: kDemoUserId,
           name: 'Savings',
           type: WalletType.savings,
-          openingBalance: 65000,
+          openingBalance: 0,
+          countInDailyExpense: false,
           createdAt: _now.subtract(const Duration(days: 30)),
           updatedAt: _now.subtract(const Duration(days: 30)),
         ),
@@ -56,7 +57,7 @@ class FakeSeedData {
           userId: kDemoUserId,
           name: 'Easypaisa / JazzCash',
           type: WalletType.mobileWallet,
-          openingBalance: 14200,
+          openingBalance: 0,
           createdAt: _now.subtract(const Duration(days: 30)),
           updatedAt: _now.subtract(const Duration(days: 30)),
         ),
@@ -188,180 +189,11 @@ class FakeSeedData {
         ),
       ];
 
-  static List<TransactionEntry> get initialTransactions => [
-        TransactionEntry(
-          id: 'tx_01',
-          userId: kDemoUserId,
-          walletId: kWalletSavingsId,
-          categoryId: kCatProjectEarningId,
-          type: TransactionType.income,
-          amount: 45000,
-          note: 'Mobile app UI client milestone',
-          date: _now.subtract(const Duration(days: 3)),
-          createdAt: _now.subtract(const Duration(days: 3)),
-          updatedAt: _now.subtract(const Duration(days: 3)),
-        ),
-        TransactionEntry(
-          id: 'tx_02',
-          userId: kDemoUserId,
-          walletId: kWalletMobileId,
-          categoryId: kCatBillsId,
-          type: TransactionType.expense,
-          amount: 4800,
-          note: 'Home internet & electricity',
-          date: _now.subtract(const Duration(days: 2)),
-          createdAt: _now.subtract(const Duration(days: 2)),
-          updatedAt: _now.subtract(const Duration(days: 2)),
-        ),
-        TransactionEntry(
-          id: 'tx_03',
-          userId: kDemoUserId,
-          walletId: kWalletCashId,
-          categoryId: kCatFoodId,
-          type: TransactionType.expense,
-          amount: 1850,
-          note: 'Family dinner & biryani',
-          date: _now.subtract(const Duration(days: 1)),
-          createdAt: _now.subtract(const Duration(days: 1)),
-          updatedAt: _now.subtract(const Duration(days: 1)),
-        ),
-        TransactionEntry(
-          id: 'tx_04',
-          userId: kDemoUserId,
-          walletId: kWalletMobileId,
-          categoryId: kCatTransportId,
-          type: TransactionType.expense,
-          amount: 950,
-          note: 'Careem ride to office',
-          date: _now,
-          createdAt: _now,
-          updatedAt: _now,
-        ),
-        TransactionEntry(
-          id: 'tx_05',
-          userId: kDemoUserId,
-          walletId: kWalletCashId,
-          categoryId: kCatShoppingId,
-          type: TransactionType.expense,
-          amount: 2200,
-          note: 'Notebooks and stationary',
-          date: _now,
-          createdAt: _now,
-          updatedAt: _now,
-        ),
-      ];
+  static List<TransactionEntry> get initialTransactions => const [];
 
-  static List<Transfer> get initialTransfers => [
-        Transfer(
-          id: 'tr_01',
-          userId: kDemoUserId,
-          fromWalletId: kWalletSavingsId,
-          toWalletId: kWalletMobileId,
-          amount: 5000,
-          note: 'Monthly Easypaisa top-up',
-          date: _now.subtract(const Duration(days: 5)),
-          createdAt: _now.subtract(const Duration(days: 5)),
-          updatedAt: _now.subtract(const Duration(days: 5)),
-        ),
-        Transfer(
-          id: 'tr_02',
-          userId: kDemoUserId,
-          fromWalletId: kWalletMobileId,
-          toWalletId: kWalletCashId,
-          amount: 3000,
-          note: 'Cash out from agent',
-          date: _now.subtract(const Duration(days: 2)),
-          createdAt: _now.subtract(const Duration(days: 2)),
-          updatedAt: _now.subtract(const Duration(days: 2)),
-        ),
-      ];
+  static List<Transfer> get initialTransfers => const [];
 
-  static List<Budget> get initialBudgets {
-    final monthKey =
-        '${_now.year.toString().padLeft(4, '0')}-${_now.month.toString().padLeft(2, '0')}';
-    return [
-      Budget(
-        id: 'bg_total',
-        userId: kDemoUserId,
-        month: monthKey,
-        mode: BudgetMode.both,
-        categoryId: null,
-        amount: 35000, // Total monthly budget: Rs 35,000
-        createdAt: _now.subtract(const Duration(days: 10)),
-        updatedAt: _now.subtract(const Duration(days: 10)),
-      ),
-      Budget(
-        id: 'bg_food',
-        userId: kDemoUserId,
-        month: monthKey,
-        mode: BudgetMode.both,
-        categoryId: kCatFoodId,
-        amount: 15000, // Food budget: Rs 15,000
-        createdAt: _now.subtract(const Duration(days: 10)),
-        updatedAt: _now.subtract(const Duration(days: 10)),
-      ),
-      Budget(
-        id: 'bg_transport',
-        userId: kDemoUserId,
-        month: monthKey,
-        mode: BudgetMode.both,
-        categoryId: kCatTransportId,
-        amount: 6000, // Transport budget: Rs 6,000
-        createdAt: _now.subtract(const Duration(days: 10)),
-        updatedAt: _now.subtract(const Duration(days: 10)),
-      ),
-      Budget(
-        id: 'bg_bills',
-        userId: kDemoUserId,
-        month: monthKey,
-        mode: BudgetMode.both,
-        categoryId: kCatBillsId,
-        amount: 8000, // Bills budget: Rs 8,000
-        createdAt: _now.subtract(const Duration(days: 10)),
-        updatedAt: _now.subtract(const Duration(days: 10)),
-      ),
-    ];
-  }
+  static List<Budget> get initialBudgets => const [];
 
-  static List<Udhaar> get initialUdhaar => [
-        Udhaar(
-          id: 'udh_01',
-          userId: kDemoUserId,
-          personName: 'Ahmed Raza',
-          amount: 3500,
-          direction: UdhaarDirection.take,
-          dueDate: _now.add(const Duration(days: 2)),
-          status: UdhaarStatus.pending,
-          note: 'Lent for semester fee short balance',
-          notificationId: 101,
-          createdAt: _now.subtract(const Duration(days: 4)),
-          updatedAt: _now.subtract(const Duration(days: 4)),
-        ),
-        Udhaar(
-          id: 'udh_02',
-          userId: kDemoUserId,
-          personName: 'Usman Tariq',
-          amount: 1500,
-          direction: UdhaarDirection.give,
-          dueDate: _now.add(const Duration(days: 5)),
-          status: UdhaarStatus.pending,
-          note: 'Shared cafe bill contribution',
-          notificationId: 102,
-          createdAt: _now.subtract(const Duration(days: 1)),
-          updatedAt: _now.subtract(const Duration(days: 1)),
-        ),
-        Udhaar(
-          id: 'udh_03',
-          userId: kDemoUserId,
-          personName: 'Hamza Khan',
-          amount: 2000,
-          direction: UdhaarDirection.take,
-          dueDate: _now.subtract(const Duration(days: 3)),
-          status: UdhaarStatus.settled,
-          note: 'Weekend road trip fuel share (settled)',
-          notificationId: 103,
-          createdAt: _now.subtract(const Duration(days: 10)),
-          updatedAt: _now.subtract(const Duration(days: 3)),
-        ),
-      ];
+  static List<Udhaar> get initialUdhaar => const [];
 }
