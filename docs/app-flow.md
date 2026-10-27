@@ -21,11 +21,13 @@ Login ──► Home
 - Logout (More → Logout) returns to Login.
 
 ## 3. Main navigation
-Bottom bar with 4 tabs; "More" opens from the app bar menu.
+Custom floating notched bottom bar with 4 tabs and a center `(+)` button; "More" opens from the app bar menu.
 ```
-Home | Transactions | Budget | Udhaar          ⋮ More
+Home | Transactions | (+) | Budget | Udhaar          ⋮ More
 ```
-A floating **+** button on Home and Transactions opens quick add.
+- The central **(+)** button sits in the smooth notched dip of the floating bar and opens the Add Transaction screen.
+- The previous screen-level floating + buttons on Home and Transactions are removed.
+- Tab selection state is managed via Riverpod (`navigationIndexProvider`) and preserved using `IndexedStack`.
 
 ## 4. Screens and actions
 
@@ -39,9 +41,10 @@ A floating **+** button on Home and Transactions opens quick add.
 
 ### Add / Edit Transaction
 ```
-+ button → choose Income or Expense
+Center (+) button → Add Transaction (Expense selected by default; toggle at top to switch to Income)
    → amount → wallet → category → date → note (optional) → Save
 ```
+- *Note:* Transfer is NOT in the `(+)` flow. Transfer remains directly accessible on the Home dashboard and via the More menu.
 - Validation: amount > 0, wallet and category required.
 - After save: back to previous screen, balance and budget update, success snackbar.
 - Edit/delete from the transaction tile (delete asks for confirmation).
@@ -52,6 +55,7 @@ A floating **+** button on Home and Transactions opens quick add.
 - Tap a tile → edit; swipe/long-press → delete
 
 ### Transfer
+Accessible via the **Transfer** button on the Home dashboard and under the More menu (not part of the `(+)` button flow).
 ```
 Home / More → Transfer → from wallet → to wallet → amount → date → note → Save
 ```

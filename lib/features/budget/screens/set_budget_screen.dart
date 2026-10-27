@@ -204,21 +204,39 @@ class _SetBudgetScreenState extends ConsumerState<SetBudgetScreen> {
                           ),
                           const SizedBox(height: 10),
                           SegmentedButton<BudgetMode>(
+                            showSelectedIcon: false,
+                            style: SegmentedButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
+                              textStyle: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                             segments: const [
                               ButtonSegment(
                                 value: BudgetMode.total,
-                                icon: Icon(Icons.account_balance_wallet_outlined, size: 16),
-                                label: Text('Overall'),
+                                icon: Icon(Icons.account_balance_wallet_outlined, size: 15),
+                                label: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text('Overall', maxLines: 1),
+                                ),
                               ),
                               ButtonSegment(
                                 value: BudgetMode.category,
-                                icon: Icon(Icons.category_outlined, size: 16),
-                                label: Text('Category'),
+                                icon: Icon(Icons.category_outlined, size: 15),
+                                label: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text('Category', maxLines: 1),
+                                ),
                               ),
                               ButtonSegment(
                                 value: BudgetMode.both,
-                                icon: Icon(Icons.pie_chart_outline_rounded, size: 16),
-                                label: Text('Both'),
+                                icon: Icon(Icons.pie_chart_outline_rounded, size: 15),
+                                label: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text('Both', maxLines: 1),
+                                ),
                               ),
                             ],
                             selected: {_mode},

@@ -42,7 +42,7 @@ class TransactionTile extends StatelessWidget {
       onLongPress: onLongPress,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+        padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
         child: Row(
           children: [
             // Category Icon Badge

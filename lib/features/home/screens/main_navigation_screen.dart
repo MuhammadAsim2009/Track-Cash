@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../core/utils/date_formatter.dart';
+import '../../../data/models/models.dart';
+import '../../../widgets/floating_nav_bar.dart';
+import '../../../widgets/tab_screen_wrapper.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../budget/screens/budget_screen.dart';
 import '../../budget/screens/set_budget_screen.dart';
@@ -12,6 +15,7 @@ import '../../transactions/screens/transactions_screen.dart';
 import '../../transfers/screens/transfers_screen.dart';
 import '../../udhaar/screens/add_edit_udhaar_screen.dart';
 import '../../udhaar/screens/udhaar_screen.dart';
+import '../providers/navigation_provider.dart';
 
 enum MoreMenuAction {
   categories,
@@ -21,9 +25,9 @@ enum MoreMenuAction {
 }
 
 /// Root navigation screen featuring:
-/// - App bar with title and "More" popup menu (Categories, Transfers, Theme, Logout)
-/// - Material 3 NavigationBar with 4 tabs (Home, Transactions, Budget, Udhaar)
-/// - Floating Action Button for quick add on Home and Transactions tabs
+/// - App bar with dynamic title and "More" popup menu (Categories, Transfers, Theme, Logout)
+/// - IndexedStack holding tab screens wrapped in TabScreenWrapper (retaining state & avoiding overlap)
+/// - Custom FloatingNavBar with smooth cubic notch, 4 animated tabs, and center "+" button
 class MainNavigationScreen extends ConsumerStatefulWidget {
   const MainNavigationScreen({super.key});
 
@@ -33,14 +37,42 @@ class MainNavigationScreen extends ConsumerStatefulWidget {
 }
 
 class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
-  int _currentIndex = 0;
-
   static const List<String> _titles = [
     'TrackCash',
     'Transactions',
     'Monthly Budget',
     'Udhaar',
   ];
+
+  /// Dispatches the "+" button action based on the currently selected tab.
+  /// - Home / Transactions → Add Expense transaction (with Income toggle)
+  /// - Budget (index 2)    → Set Budget for current month
+  /// - Udhaar (index 3)    → Add Udhaar entry
+  void _onAddPressed(BuildContext context, int tabIndex) {
+    switch (tabIndex) {
+      case 2: // Budget tab
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => SetBudgetScreen(
+              monthKey: DateFormatter.formatMonthKey(DateTime.now()),
+            ),
+          ),
+        );
+      case 3: // Udhaar tab
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const AddEditUdhaarScreen()),
+        );
+      default: // Home (0) & Transactions (1)
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const AddEditTransactionScreen(
+              initialType: TransactionType.expense,
+            ),
+          ),
+        );
+    }
+  }
+
 
   void _onMenuActionSelected(MoreMenuAction action) {
     switch (action) {
@@ -150,20 +182,28 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currentIndex = ref.watch(navigationIndexProvider);
+
+    // Tab screens wrapped in TabScreenWrapper to centrally provide bottom padding
+    // so content and the last list item are never obscured behind the floating nav bar.
     final screens = [
       DashboardScreen(
-        onNavigateToTransactions: () => setState(() => _currentIndex = 1),
-        onNavigateToBudget: () => setState(() => _currentIndex = 2),
-        onNavigateToUdhaar: () => setState(() => _currentIndex = 3),
+        onNavigateToTransactions: () =>
+            ref.read(navigationIndexProvider.notifier).state = 1,
+        onNavigateToBudget: () =>
+            ref.read(navigationIndexProvider.notifier).state = 2,
+        onNavigateToUdhaar: () =>
+            ref.read(navigationIndexProvider.notifier).state = 3,
       ),
       const TransactionsScreen(),
       const BudgetScreen(),
       const UdhaarScreen(),
-    ];
+    ].map((screen) => TabScreenWrapper(child: screen)).toList();
 
     return Scaffold(
+      extendBody: true,
       appBar: AppBar(
-        title: Text(_titles[_currentIndex]),
+        title: Text(_titles[currentIndex]),
         actions: [
           PopupMenuButton<MoreMenuAction>(
             icon: const Icon(Icons.more_vert),
@@ -216,79 +256,23 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
         ],
       ),
       body: IndexedStack(
-        index: _currentIndex,
+        index: currentIndex,
         children: screens,
       ),
-      floatingActionButton: switch (_currentIndex) {
-        0 || 1 => FloatingActionButton(
-            heroTag: null,
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const AddEditTransactionScreen(),
-                ),
-              );
-            },
-            tooltip: 'Add Transaction',
-            child: const Icon(Icons.add),
-          ),
-        2 => FloatingActionButton(
-            heroTag: null,
-            onPressed: () {
-              final selectedDate = ref.read(selectedBudgetMonthProvider);
-              final monthKey = DateFormatter.formatMonthKey(selectedDate);
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => SetBudgetScreen(monthKey: monthKey),
-                ),
-              );
-            },
-            tooltip: 'Set Budget',
-            child: const Icon(Icons.add),
-          ),
-        3 => FloatingActionButton(
-            heroTag: null,
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const AddEditUdhaarScreen(),
-                ),
-              );
-            },
-            tooltip: 'Add Udhaar',
-            child: const Icon(Icons.add),
-          ),
-        _ => null,
-      },
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long),
-            label: 'Transactions',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.pie_chart_outline),
-            selectedIcon: Icon(Icons.pie_chart),
-            label: 'Budget',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.handshake_outlined),
-            selectedIcon: Icon(Icons.handshake),
-            label: 'Udhaar',
-          ),
-        ],
+      bottomNavigationBar: Padding(
+        padding: EdgeInsets.fromLTRB(
+          16,
+          0,
+          16,
+          12 + MediaQuery.paddingOf(context).bottom,
+        ),
+        child: FloatingNavBar(
+          selectedIndex: currentIndex,
+          onTabSelected: (index) {
+            ref.read(navigationIndexProvider.notifier).state = index;
+          },
+          onAddPressed: () => _onAddPressed(context, currentIndex),
+        ),
       ),
     );
   }

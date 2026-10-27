@@ -6,6 +6,7 @@ import '../../../data/models/models.dart';
 import '../../../data/repositories/repository_providers.dart';
 import '../../../widgets/confirm_dialog.dart';
 import '../../../widgets/empty_state_view.dart';
+import '../../../widgets/tab_screen_wrapper.dart';
 import '../../../widgets/udhaar_tile.dart';
 import 'add_edit_udhaar_screen.dart';
 
@@ -221,7 +222,7 @@ class _UdhaarScreenState extends ConsumerState<UdhaarScreen>
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.only(top: 8, bottom: 80),
+      padding: EdgeInsets.only(top: 8, bottom: TabScreenWrapper.bottomPadding(context)),
       itemCount: filtered.length,
       itemBuilder: (context, index) {
         final item = filtered[index];

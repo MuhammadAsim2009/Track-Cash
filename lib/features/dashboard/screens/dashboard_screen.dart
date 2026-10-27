@@ -6,6 +6,7 @@ import '../../../core/utils/date_formatter.dart';
 import '../../../data/models/models.dart';
 import '../../../data/repositories/repository_providers.dart';
 import '../../../widgets/budget_progress_bar.dart';
+import '../../../widgets/tab_screen_wrapper.dart';
 import '../../../widgets/transaction_tile.dart';
 import '../../../widgets/udhaar_tile.dart';
 import '../../../widgets/wallet_card.dart';
@@ -54,7 +55,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(bottom: 80),
+        padding: TabScreenWrapper.padding(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -390,11 +391,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 return Card(
                   elevation: 0,
                   margin: const EdgeInsets.symmetric(horizontal: 16.0),
+                  clipBehavior: Clip.antiAlias,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(16)),
+                  ),
                   child: ListView.separated(
+                    padding: EdgeInsets.zero,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: transactions.length,
-                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    separatorBuilder: (_, _) => const Divider(height: 1, thickness: 1),
                     itemBuilder: (context, index) {
                       final tx = transactions[index];
                       return TransactionTile(

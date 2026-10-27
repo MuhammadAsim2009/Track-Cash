@@ -7,6 +7,7 @@ import '../../../data/models/models.dart';
 import '../../../data/repositories/repository_providers.dart';
 import '../../../widgets/confirm_dialog.dart';
 import '../../../widgets/empty_state_view.dart';
+import '../../../widgets/tab_screen_wrapper.dart';
 import '../../../widgets/transaction_tile.dart';
 import 'add_edit_transaction_screen.dart';
 
@@ -94,9 +95,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     }
     final monthNet = monthIncome - monthExpense;
 
-    return Scaffold(
-      body: Column(
-        children: [
+    return Column(
+      children: [
           // ── Month Selector Header ──────────────────────────────────
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -564,7 +564,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 }
 
                 return ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 96),
+                  padding: TabScreenWrapper.padding(context),
                   itemCount: grouped.keys.length,
                   itemBuilder: (context, groupIdx) {
                     final dateKey = grouped.keys.elementAt(groupIdx);
@@ -586,16 +586,18 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                         Card(
                           elevation: 0,
                           margin: const EdgeInsets.symmetric(horizontal: 16),
+                          clipBehavior: Clip.antiAlias,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                             side: BorderSide(color: colors.border),
                           ),
                           child: ListView.separated(
+                            padding: EdgeInsets.zero,
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             itemCount: dayTxs.length,
                             separatorBuilder: (_, _) =>
-                                const Divider(height: 1),
+                                Divider(height: 1, thickness: 1, color: colors.border),
                             itemBuilder: (context, idx) {
                               final tx = dayTxs[idx];
                               return TransactionTile(
@@ -647,7 +649,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 }

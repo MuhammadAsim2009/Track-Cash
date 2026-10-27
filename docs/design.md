@@ -29,10 +29,17 @@ Light and dark, user-switchable, saved locally. Material 3 with a custom green c
 ## Layout
 - 8px spacing grid; screen padding 16px.
 - Cards: 16px radius, soft shadow (light) / subtle border (dark).
-- Bottom navigation with 4 tabs: Home, Transactions, Budget, Udhaar. "More" in the app bar menu.
-- Floating action button on Home/Transactions for quick add.
+- Custom floating notched bottom bar: `Home | Transactions | (+) | Budget | Udhaar`. "More" in the app bar menu.
+- Bar dimensions & shape: horizontal margin 16px, bottom margin 12px + safe area, corner radius 28px, smooth cubic curved notch in top center.
+- Screen bottom padding: centralized 100px + safe area padding wrapper (`TabScreenWrapper`) on all tab screens to prevent list items being obscured by the floating bar.
 
 ## Components
+- Floating Notched Navigation Bar:
+  - 4 tabs (Home, Transactions, Budget, Udhaar) with animated selection (200ms).
+  - Active tab uses primary color for icon and label; inactive tabs use secondary text color.
+  - Center 56px circular green `+` button in notch, slightly raised, triggers Add Transaction (Expense by default with Income toggle).
+  - Light mode: white surface with soft shadow (`#000000` 10% opacity, blur 12, y: 4).
+  - Dark mode: `#1E293B` surface with 1px `#334155` border (no shadow).
 - Wallet card: icon, name, balance.
 - Transaction tile: category icon, note, wallet, amount (green income / red expense).
 - Budget progress bar: green → amber at 80% → red when exceeded.

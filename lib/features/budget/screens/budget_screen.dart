@@ -7,6 +7,7 @@ import '../../../core/utils/date_formatter.dart';
 import '../../../core/utils/icon_resolver.dart';
 import '../../../data/models/models.dart';
 import '../../../data/repositories/repository_providers.dart';
+import '../../../widgets/tab_screen_wrapper.dart';
 import 'set_budget_screen.dart';
 
 /// Provider for tracking currently selected month in Budget view.
@@ -143,7 +144,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                   },
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                    padding: TabScreenWrapper.padding(context, const EdgeInsets.fromLTRB(16, 16, 16, 0)),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

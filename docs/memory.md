@@ -21,7 +21,16 @@
   - Budget (`lib/features/budget/`): `BudgetScreen` with month navigation, total budget progress bar, per-category progress breakdown, "Copy Last Month" feature, and `SetBudgetScreen` supporting Total, Per-category, or Both modes.
   - Udhaar (`lib/features/udhaar/`): `UdhaarScreen` with "I have to give" & "I have to take" tabs, net debt/credit summary header, due-date chips with overdue alerts, settle toggle, delete confirmation, and `AddEditUdhaarScreen` with date presets.
   - Categories (`lib/features/categories/`): `CategoriesScreen` with Expense and Income tabs, default vs custom chips, hide/unhide toggle, icon and color picker dialogs, and deletion for custom categories.
-  - Navigation & App Shell (`lib/features/home/` & `lib/app.dart`): Auth gate, 4-tab bottom navigation bar, FAB on Home and Transactions, and "More" menu (Categories, Transfers, Theme selector dialog, Logout).
+  - Custom Floating Notched Bottom Bar & Navigation Shell (`lib/widgets/floating_nav_bar.dart`, `lib/widgets/tab_screen_wrapper.dart`, `lib/features/home/`):
+    - Replaced default BottomNavigationBar/NavigationBar with a custom floating notched bar: `Home | Transactions | (+) | Budget | Udhaar`.
+    - Pure Flutter `CustomPainter` with smooth `cubicTo` bezier curves (no third-party packages, no `BottomAppBar`/`CircularNotchedRectangle`).
+    - Margins: 16 horizontal, 12 bottom + system safe area, 28 corner radius.
+    - Theme styling: Light mode uses white surface with soft shadow; Dark mode uses `#1E293B` surface with 1px `#334155` border (no shadow).
+    - Center 56px circular green `+` button in notch, slightly raised, triggers Add Transaction (Expense by default with Income toggle).
+    - Removed old floating action buttons from Home and Transactions screens.
+    - Centralized `TabScreenWrapper` providing 100px + safe area bottom padding to all tab screens so list content is never obscured.
+    - Tab selection state managed cleanly in Riverpod (`navigationIndexProvider`) with state preserved via `IndexedStack`.
+    - Smooth 200ms selection transition for tab icons and visible labels.
   - `flutter analyze` passing with 0 issues / 0 warnings.
 
 ## In progress
