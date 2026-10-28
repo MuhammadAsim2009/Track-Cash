@@ -11,13 +11,16 @@ class SqliteTransactionsRepository implements TransactionsRepository {
     AppDatabase? db,
     String userId = kDemoUserId,
     void Function()? onDataChanged,
+    void Function()? onTransfersChanged,
   })  : _db = db ?? AppDatabase.instance,
         _userId = userId,
-        _onDataChanged = onDataChanged;
+        _onDataChanged = onDataChanged,
+        _onTransfersChanged = onTransfersChanged;
 
   final AppDatabase _db;
   final String _userId;
   final void Function()? _onDataChanged;
+  final void Function()? _onTransfersChanged;
   final _changeController = StreamController<void>.broadcast();
 
   void notifyListeners() {
@@ -134,6 +137,146 @@ class SqliteTransactionsRepository implements TransactionsRepository {
       whereArgs: [id],
     );
     notifyListeners();
+  }
+
+  @override
+  Future<void> deleteIncomeAndRevertDependent(String id) async {
+    final db = await _db.database;
+    final nowIso = DateTime.now().toIso8601String();
+
+    await db.transaction((txn) async {
+      // 1. Fetch the income transaction
+      final txMaps = await txn.query(
+        'transactions',
+        where: 'id = ? AND is_deleted = 0',
+        whereArgs: [id],
+        limit: 1,
+      );
+      if (txMaps.isEmpty) return;
+      final tx = TransactionEntry.fromMap(txMaps.first);
+      final walletId = tx.walletId;
+
+      // 2. Soft-delete this income transaction
+      await txn.update(
+        'transactions',
+        {'is_deleted': 1, 'updated_at': nowIso},
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+
+      // 3. Helper to calculate any wallet's balance inside the transaction
+      Future<int> computeWalletBalance(String wId) async {
+        final wMaps = await txn.query(
+          'wallets',
+          columns: ['opening_balance'],
+          where: 'id = ? AND is_deleted = 0',
+          whereArgs: [wId],
+        );
+        final opening = wMaps.isNotEmpty
+            ? (wMaps.first['opening_balance'] as num).toInt()
+            : 0;
+
+        final incRes = await txn.rawQuery('''
+          SELECT COALESCE(SUM(amount), 0) as total FROM transactions
+          WHERE wallet_id = ? AND type = 'income' AND is_deleted = 0
+        ''', [wId]);
+        final inc = (incRes.first['total'] as num).toInt();
+
+        final expRes = await txn.rawQuery('''
+          SELECT COALESCE(SUM(amount), 0) as total FROM transactions
+          WHERE wallet_id = ? AND type = 'expense' AND is_deleted = 0
+        ''', [wId]);
+        final exp = (expRes.first['total'] as num).toInt();
+
+        final tInRes = await txn.rawQuery('''
+          SELECT COALESCE(SUM(amount), 0) as total FROM transfers
+          WHERE to_wallet_id = ? AND is_deleted = 0
+        ''', [wId]);
+        final tIn = (tInRes.first['total'] as num).toInt();
+
+        final tOutRes = await txn.rawQuery('''
+          SELECT COALESCE(SUM(amount), 0) as total FROM transfers
+          WHERE from_wallet_id = ? AND is_deleted = 0
+        ''', [wId]);
+        final tOut = (tOutRes.first['total'] as num).toInt();
+
+        final uTakeRes = await txn.rawQuery('''
+          SELECT COALESCE(SUM(amount), 0) as total FROM udhaar
+          WHERE wallet_id = ? AND direction = 'take' AND status = 'pending' AND is_deleted = 0
+        ''', [wId]);
+        final uTake = (uTakeRes.first['total'] as num).toInt();
+
+        final uGiveRes = await txn.rawQuery('''
+          SELECT COALESCE(SUM(amount), 0) as total FROM udhaar
+          WHERE wallet_id = ? AND direction = 'give' AND status = 'pending' AND is_deleted = 0
+        ''', [wId]);
+        final uGive = (uGiveRes.first['total'] as num).toInt();
+
+        return opening + inc - exp + tIn - tOut - uTake + uGive;
+      }
+
+      // 4. Resolve negative balances with cascading to affected wallets
+      // When a transfer is reverted, the destination wallet loses that money and may become negative.
+      final walletsToBalance = <String>{walletId};
+
+      while (walletsToBalance.isNotEmpty) {
+        final currentWId = walletsToBalance.first;
+        walletsToBalance.remove(currentWId);
+
+        int currentBal = await computeWalletBalance(currentWId);
+        if (currentBal >= 0) continue;
+
+        // A. Revert outgoing transfers from this wallet (LIFO)
+        final outTransfers = await txn.query(
+          'transfers',
+          where: 'from_wallet_id = ? AND is_deleted = 0',
+          whereArgs: [currentWId],
+          orderBy: 'date DESC, created_at DESC',
+        );
+
+        for (final row in outTransfers) {
+          if (currentBal >= 0) break;
+          final transferId = row['id'] as String;
+          final toWalletId = row['to_wallet_id'] as String;
+
+          await txn.update(
+            'transfers',
+            {'is_deleted': 1, 'updated_at': nowIso},
+            where: 'id = ?',
+            whereArgs: [transferId],
+          );
+
+          // Destination wallet lost incoming transfer, check if it needs re-balancing
+          walletsToBalance.add(toWalletId);
+          currentBal = await computeWalletBalance(currentWId);
+        }
+
+        // B. If still negative, revert outgoing expenses on this wallet (LIFO)
+        if (currentBal < 0) {
+          final expenses = await txn.query(
+            'transactions',
+            where: "wallet_id = ? AND type = 'expense' AND is_deleted = 0",
+            whereArgs: [currentWId],
+            orderBy: 'date DESC, created_at DESC',
+          );
+
+          for (final row in expenses) {
+            if (currentBal >= 0) break;
+            final expId = row['id'] as String;
+            await txn.update(
+              'transactions',
+              {'is_deleted': 1, 'updated_at': nowIso},
+              where: 'id = ?',
+              whereArgs: [expId],
+            );
+            currentBal = await computeWalletBalance(currentWId);
+          }
+        }
+      }
+    });
+
+    notifyListeners();
+    _onTransfersChanged?.call();
   }
 
   @override

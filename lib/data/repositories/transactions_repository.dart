@@ -28,6 +28,10 @@ abstract class TransactionsRepository {
   /// Soft-deletes a transaction.
   Future<void> deleteTransaction(String id);
 
+  /// Deletes an income transaction and reverts any dependent outgoing
+  /// transfers and expenses on that wallet so the wallet balance does not become negative.
+  Future<void> deleteIncomeAndRevertDependent(String id);
+
   /// Calculates total expense for a specific month (e.g. "2026-10") in rupees.
   Future<int> getTotalExpenseForMonth(String monthKey);
 

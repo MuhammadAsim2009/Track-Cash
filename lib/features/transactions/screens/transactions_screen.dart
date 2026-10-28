@@ -614,6 +614,40 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                   );
                                 },
                                 onLongPress: () async {
+                                  if (tx.type == TransactionType.income) {
+                                    final walletsRepo = ref.read(walletsRepositoryProvider);
+                                    final currentBalance = await walletsRepo.getWalletBalance(tx.walletId);
+                                    final newBalance = currentBalance - tx.amount;
+
+                                    if (newBalance < 0) {
+                                      if (!context.mounted) return;
+                                      final confirmed = await showConfirmDialog(
+                                        context: context,
+                                        title: 'Warning: Balance Would Go Negative',
+                                        message:
+                                            'Deleting this income of ${CurrencyFormatter.format(tx.amount)} will cause the wallet balance to drop below 0 (short by ${CurrencyFormatter.format(newBalance.abs())}) because money was already transferred or spent.\n\nDo you want to delete this income and automatically revert dependent transfers/expenses so the balance does not become negative?',
+                                        confirmLabel: 'Delete & Revert',
+                                        cancelLabel: 'Cancel',
+                                      );
+
+                                      if (confirmed && context.mounted) {
+                                        await ref
+                                            .read(transactionsRepositoryProvider)
+                                            .deleteIncomeAndRevertDependent(tx.id);
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                  'Income deleted and dependent transfers/expenses reverted'),
+                                            ),
+                                          );
+                                        }
+                                      }
+                                      return;
+                                    }
+                                  }
+
+                                  if (!context.mounted) return;
                                   final confirmed = await showConfirmDialog(
                                     context: context,
                                     title: 'Delete Transaction',

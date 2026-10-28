@@ -195,6 +195,44 @@ class _AddEditTransactionScreenState
   }
 
   Future<void> _delete() async {
+    final tx = widget.initialTransaction;
+    if (tx == null) return;
+
+    // Check if deleting this income would cause the wallet balance to go negative
+    if (tx.type == TransactionType.income) {
+      final walletsRepo = ref.read(walletsRepositoryProvider);
+      final currentBalance = await walletsRepo.getWalletBalance(tx.walletId);
+      final newBalance = currentBalance - tx.amount;
+
+      if (newBalance < 0) {
+        if (!mounted) return;
+        final confirmed = await showConfirmDialog(
+          context: context,
+          title: 'Warning: Balance Would Go Negative',
+          message:
+              'Deleting this income of ${CurrencyFormatter.format(tx.amount)} will cause the wallet balance to drop below 0 (short by ${CurrencyFormatter.format(newBalance.abs())}) because money was already transferred or spent.\n\nDo you want to delete this income and automatically revert dependent transfers/expenses so the balance does not become negative?',
+          confirmLabel: 'Delete & Revert',
+          cancelLabel: 'Cancel',
+        );
+
+        if (!confirmed || !mounted) return;
+
+        await ref
+            .read(transactionsRepositoryProvider)
+            .deleteIncomeAndRevertDependent(tx.id);
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Income deleted and dependent transfers/expenses reverted'),
+          ),
+        );
+        Navigator.of(context).pop();
+        return;
+      }
+    }
+
+    if (!mounted) return;
     final confirmed = await showConfirmDialog(
       context: context,
       title: 'Delete Transaction',
@@ -205,7 +243,7 @@ class _AddEditTransactionScreenState
 
     await ref
         .read(transactionsRepositoryProvider)
-        .deleteTransaction(widget.initialTransaction!.id);
+        .deleteTransaction(tx.id);
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(

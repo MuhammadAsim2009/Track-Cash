@@ -23,17 +23,19 @@ final categoriesRepositoryProvider = Provider<CategoriesRepository>((ref) {
   return SqliteCategoriesRepository();
 });
 
-final transactionsRepositoryProvider = Provider<TransactionsRepository>((ref) {
-  final walletsRepo = ref.watch(walletsRepositoryProvider) as SqliteWalletsRepository;
-  return SqliteTransactionsRepository(
-    onDataChanged: walletsRepo.notifyListeners,
-  );
-});
-
 final transfersRepositoryProvider = Provider<TransfersRepository>((ref) {
   final walletsRepo = ref.watch(walletsRepositoryProvider) as SqliteWalletsRepository;
   return SqliteTransfersRepository(
     onDataChanged: walletsRepo.notifyListeners,
+  );
+});
+
+final transactionsRepositoryProvider = Provider<TransactionsRepository>((ref) {
+  final walletsRepo = ref.watch(walletsRepositoryProvider) as SqliteWalletsRepository;
+  final transfersRepo = ref.watch(transfersRepositoryProvider) as SqliteTransfersRepository;
+  return SqliteTransactionsRepository(
+    onDataChanged: walletsRepo.notifyListeners,
+    onTransfersChanged: transfersRepo.notifyListeners,
   );
 });
 

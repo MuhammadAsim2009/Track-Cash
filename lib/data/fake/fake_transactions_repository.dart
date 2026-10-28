@@ -91,6 +91,11 @@ class FakeTransactionsRepository implements TransactionsRepository {
   }
 
   @override
+  Future<void> deleteIncomeAndRevertDependent(String id) async {
+    await deleteTransaction(id);
+  }
+
+  @override
   Future<int> getTotalExpenseForMonth(String monthKey) async {
     final monthExpenses = await getTransactions(
       type: TransactionType.expense,
