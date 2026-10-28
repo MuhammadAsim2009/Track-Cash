@@ -75,10 +75,11 @@ class FakeUdhaarRepository implements UdhaarRepository {
   }
 
   @override
-  Future<void> markAsSettled(String id) async {
+  Future<void> markAsSettled(String id, {String? settleWalletId}) async {
     final index = _udhaarList.indexWhere((u) => u.id == id);
     if (index != -1) {
       _udhaarList[index] = _udhaarList[index].copyWith(
+        walletId: settleWalletId ?? _udhaarList[index].walletId,
         status: UdhaarStatus.settled,
         updatedAt: DateTime.now(),
       );

@@ -3,6 +3,7 @@ import 'package:sqflite/sqflite.dart';
 import '../../fake/fake_seed_data.dart';
 import '../../local/app_database.dart';
 import '../../models/transaction_entry.dart';
+import '../../sync/firestore_sync_service.dart';
 import '../transactions_repository.dart';
 
 /// SQLite implementation of [TransactionsRepository].
@@ -15,12 +16,14 @@ class SqliteTransactionsRepository implements TransactionsRepository {
   })  : _db = db ?? AppDatabase.instance,
         _userId = userId,
         _onDataChanged = onDataChanged,
-        _onTransfersChanged = onTransfersChanged;
+        _onTransfersChanged = onTransfersChanged,
+        _sync = FirestoreSyncService(userId);
 
   final AppDatabase _db;
   final String _userId;
   final void Function()? _onDataChanged;
   final void Function()? _onTransfersChanged;
+  final FirestoreSyncService _sync;
   final _changeController = StreamController<void>.broadcast();
 
   void notifyListeners() {
@@ -110,6 +113,7 @@ class SqliteTransactionsRepository implements TransactionsRepository {
     await db.insert('transactions', transaction.toMap(),
         conflictAlgorithm: ConflictAlgorithm.replace);
     notifyListeners();
+    unawaited(_sync.pushTransaction(transaction));
   }
 
   @override
@@ -122,21 +126,27 @@ class SqliteTransactionsRepository implements TransactionsRepository {
       whereArgs: [transaction.id],
     );
     notifyListeners();
+    unawaited(_sync.pushTransaction(transaction));
   }
 
   @override
   Future<void> deleteTransaction(String id) async {
     final db = await _db.database;
+    final now = DateTime.now().toIso8601String();
     await db.update(
       'transactions',
       {
         'is_deleted': 1,
-        'updated_at': DateTime.now().toIso8601String(),
+        'updated_at': now,
+        'synced': 0,
       },
       where: 'id = ?',
       whereArgs: [id],
     );
     notifyListeners();
+    // Query without is_deleted filter to get the soft-deleted row for Firestore push
+    final rows = await db.query('transactions', where: 'id = ?', whereArgs: [id], limit: 1);
+    if (rows.isNotEmpty) unawaited(_sync.pushTransaction(TransactionEntry.fromMap(rows.first)));
   }
 
   @override
@@ -319,3 +329,5 @@ class SqliteTransactionsRepository implements TransactionsRepository {
     return (result.first['total'] as num).toInt();
   }
 }
+
+void unawaited(Future<void> future) {}

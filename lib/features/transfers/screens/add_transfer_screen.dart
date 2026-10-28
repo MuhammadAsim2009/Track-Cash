@@ -4,7 +4,6 @@ import 'package:uuid/uuid.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/date_formatter.dart';
-import '../../../data/fake/fake_seed_data.dart';
 import '../../../data/models/models.dart';
 import '../../../data/repositories/repository_providers.dart';
 import '../../../widgets/money_input_field.dart';
@@ -119,9 +118,10 @@ class _AddTransferScreenState extends ConsumerState<AddTransferScreen> {
 
     setState(() => _isSaving = true);
     final now = DateTime.now();
+    final currentUserId = ref.read(currentUserIdProvider);
     final transfer = Transfer(
       id: _uuid.v4(),
-      userId: kDemoUserId,
+      userId: currentUserId,
       fromWalletId: _fromWalletId!,
       toWalletId: _toWalletId!,
       amount: amount,

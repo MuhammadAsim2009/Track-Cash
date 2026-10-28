@@ -170,8 +170,11 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
           ),
           FilledButton(
             onPressed: () async {
+              final nav = Navigator.of(context, rootNavigator: true);
               Navigator.of(ctx).pop();
               await ref.read(authStateProvider.notifier).logout();
+              // Pop all pushed routes back to root so the auth gate renders LoginScreen
+              nav.popUntil((route) => route.isFirst);
             },
             child: const Text('Log out'),
           ),

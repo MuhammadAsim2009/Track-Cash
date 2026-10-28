@@ -3,6 +3,7 @@ import 'package:sqflite/sqflite.dart';
 import '../../fake/fake_seed_data.dart';
 import '../../local/app_database.dart';
 import '../../models/wallet.dart';
+import '../../sync/firestore_sync_service.dart';
 import '../wallets_repository.dart';
 
 /// SQLite implementation of [WalletsRepository].
@@ -11,10 +12,12 @@ class SqliteWalletsRepository implements WalletsRepository {
     AppDatabase? db,
     String userId = kDemoUserId,
   })  : _db = db ?? AppDatabase.instance,
-        _userId = userId;
+        _userId = userId,
+        _sync = FirestoreSyncService(userId);
 
   final AppDatabase _db;
   final String _userId;
+  final FirestoreSyncService _sync;
   final _changeController = StreamController<void>.broadcast();
 
   void notifyListeners() {
@@ -145,6 +148,7 @@ class SqliteWalletsRepository implements WalletsRepository {
     final db = await _db.database;
     await db.insert('wallets', wallet.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
     notifyListeners();
+    unawaited(_sync.pushWallet(wallet));
   }
 
   @override
@@ -157,17 +161,25 @@ class SqliteWalletsRepository implements WalletsRepository {
       whereArgs: [wallet.id],
     );
     notifyListeners();
+    unawaited(_sync.pushWallet(wallet));
   }
 
   @override
   Future<void> deleteWallet(String id) async {
     final db = await _db.database;
+    final now = DateTime.now().toIso8601String();
     await db.update(
       'wallets',
-      {'is_deleted': 1, 'updated_at': DateTime.now().toIso8601String()},
+      {'is_deleted': 1, 'updated_at': now, 'synced': 0},
       where: 'id = ?',
       whereArgs: [id],
     );
     notifyListeners();
+    // Fetch the soft-deleted row to push deletion to Firestore
+    final db2 = await _db.database;
+    final rows = await db2.query('wallets', where: 'id = ?', whereArgs: [id], limit: 1);
+    if (rows.isNotEmpty) unawaited(_sync.pushWallet(Wallet.fromMap(rows.first)));
   }
 }
+
+void unawaited(Future<void> future) {}

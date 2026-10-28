@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../../fake/fake_seed_data.dart';
 import '../../local/app_database.dart';
 import '../../models/budget.dart';
+import '../../sync/firestore_sync_service.dart';
 import '../budgets_repository.dart';
 
 /// SQLite implementation of [BudgetsRepository].
@@ -12,10 +13,12 @@ class SqliteBudgetsRepository implements BudgetsRepository {
     AppDatabase? db,
     String userId = kDemoUserId,
   })  : _db = db ?? AppDatabase.instance,
-        _userId = userId;
+        _userId = userId,
+        _sync = FirestoreSyncService(userId);
 
   final AppDatabase _db;
   final String _userId;
+  final FirestoreSyncService _sync;
   final _changeController = StreamController<void>.broadcast();
   static const _uuid = Uuid();
 
@@ -88,6 +91,10 @@ class SqliteBudgetsRepository implements BudgetsRepository {
     }
 
     notifyListeners();
+    // Push whichever budget was upserted
+    final saved = await getTotalBudgetForMonth(budget.month) ??
+        (await getBudgetsForMonth(budget.month)).lastOrNull;
+    if (saved != null) unawaited(_sync.pushBudget(saved));
   }
 
   @override
@@ -98,11 +105,18 @@ class SqliteBudgetsRepository implements BudgetsRepository {
       {
         'is_deleted': 1,
         'updated_at': DateTime.now().toIso8601String(),
+        'synced': 0,
       },
       where: 'id = ?',
       whereArgs: [id],
     );
     notifyListeners();
+    // Fetch the soft-deleted row to push its isDeleted=true state
+    final rows = await db.query('budgets', where: 'id = ?', whereArgs: [id], limit: 1);
+    if (rows.isNotEmpty) {
+      final b = Budget.fromMap(rows.first);
+      unawaited(_sync.pushBudget(b));
+    }
   }
 
   @override
@@ -130,3 +144,5 @@ class SqliteBudgetsRepository implements BudgetsRepository {
     notifyListeners();
   }
 }
+
+void unawaited(Future<void> future) {}

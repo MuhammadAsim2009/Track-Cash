@@ -48,16 +48,27 @@
   - All screens are now dynamic with full CRUD and reactive state propagation via SQLite.
   - `flutter analyze` passing with 0 issues / 0 warnings.
 
+- Phase 3 — Firebase Auth:
+  - Added `.gitignore` entries for `lib/firebase_options.dart` and Google Services credentials.
+  - Added dependencies `firebase_core` and `firebase_auth`.
+  - Initialized Firebase in `main.dart` with `DefaultFirebaseOptions.currentPlatform`.
+  - Replaced fake auth notifier with real `FirebaseAuthNotifier` tracking `FirebaseAuth.instance.authStateChanges()`.
+  - Connected real registration (`createUserWithEmailAndPassword`), login (`signInWithEmailAndPassword`), password reset (`sendPasswordResetEmail`), and logout (`signOut`).
+  - Added `currentUserIdProvider` and injected it across all SQLite repositories (`SqliteWalletsRepository`, `SqliteTransactionsRepository`, `SqliteTransfersRepository`, `SqliteBudgetsRepository`, `SqliteUdhaarRepository`, `SqliteCategoriesRepository`) to enforce strict user data isolation.
+  - Implemented automatic initial wallet and category seeding per user ID upon registration/login.
+  - Implemented local SQLite wipe on logout to prevent cross-user data leakage on shared devices.
+  - Updated all feature creation screens (`add_edit_transaction_screen`, `add_transfer_screen`, `add_edit_udhaar_screen`, `categories_screen`, `set_budget_screen`) to use `currentUserIdProvider`.
+  - `flutter analyze` passing with 0 issues / 0 warnings.
+
 ## In progress
-- Phase 2 Complete. Ready for Phase 3: Firebase Auth integration.
+- Phase 3 Complete. Ready for Phase 4: Firebase Sync (Firestore).
 
 ## Next step
-- Phase 3 — Firebase Auth:
-  - Configure Firebase project & Firebase CLI.
-  - Add `firebase_core` and `firebase_auth`.
-  - Connect real registration, login, logout, password reset, and auth gate.
-  - Replace temporary local user ID with Firebase `uid`.
-  - Ensure data isolation per user and clean local DB on logout.
+- Phase 4 — Firebase sync:
+  - Add `cloud_firestore` dependency.
+  - Design Firestore schema under `users/{uid}/...`.
+  - Implement push/pull synchronization between local SQLite and Firestore.
+  - Add offline detection, sync status flags, and conflict resolution (last write wins by `updated_at`).
 
 ## Decisions
 - Build order: full UI with dummy data → SQLite → Firebase Auth → Firebase sync.

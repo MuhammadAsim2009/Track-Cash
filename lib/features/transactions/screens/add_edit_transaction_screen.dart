@@ -5,7 +5,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../core/utils/icon_resolver.dart';
-import '../../../data/fake/fake_seed_data.dart';
 import '../../../data/models/models.dart';
 import '../../../data/repositories/repository_providers.dart';
 import '../../../widgets/confirm_dialog.dart';
@@ -166,9 +165,10 @@ class _AddEditTransactionScreenState
       );
       await txRepo.updateTransaction(updated);
     } else {
+      final currentUserId = ref.read(currentUserIdProvider);
       final newTx = TransactionEntry(
         id: _uuid.v4(),
-        userId: kDemoUserId,
+        userId: currentUserId,
         walletId: _selectedWalletId!,
         categoryId: _selectedCategoryId!,
         type: _selectedType,

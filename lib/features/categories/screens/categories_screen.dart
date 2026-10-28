@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/utils/icon_resolver.dart';
-import '../../../data/fake/fake_seed_data.dart';
 import '../../../data/models/models.dart';
 import '../../../data/repositories/repository_providers.dart';
 import '../../../widgets/confirm_dialog.dart';
@@ -367,9 +366,10 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
                     );
                     await repo.updateCategory(updated);
                   } else {
+                    final currentUserId = ref.read(currentUserIdProvider);
                     final newCat = AppCategory(
                       id: _uuid.v4(),
-                      userId: kDemoUserId,
+                      userId: currentUserId,
                       name: name,
                       type: selectedType,
                       icon: selectedIcon,

@@ -5,7 +5,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../core/utils/icon_resolver.dart';
-import '../../../data/fake/fake_seed_data.dart';
 import '../../../data/models/models.dart';
 import '../../../data/repositories/repository_providers.dart';
 import '../../../widgets/money_input_field.dart';
@@ -98,6 +97,7 @@ class _SetBudgetScreenState extends ConsumerState<SetBudgetScreen> {
     setState(() => _isSaving = true);
     final now = DateTime.now();
     final repo = ref.read(budgetsRepositoryProvider);
+    final currentUserId = ref.read(currentUserIdProvider);
 
     // Save Total Budget if mode includes total
     if (_mode == BudgetMode.total || _mode == BudgetMode.both) {
@@ -105,7 +105,7 @@ class _SetBudgetScreenState extends ConsumerState<SetBudgetScreen> {
       if (totalAmount > 0) {
         final totalBudget = Budget(
           id: _uuid.v4(),
-          userId: kDemoUserId,
+          userId: currentUserId,
           month: widget.monthKey,
           mode: _mode,
           categoryId: null,
@@ -125,7 +125,7 @@ class _SetBudgetScreenState extends ConsumerState<SetBudgetScreen> {
         if (amount > 0) {
           final catBudget = Budget(
             id: _uuid.v4(),
-            userId: kDemoUserId,
+            userId: currentUserId,
             month: widget.monthKey,
             mode: _mode,
             categoryId: catId,

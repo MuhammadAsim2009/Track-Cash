@@ -94,9 +94,11 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
     final totalIncomeAsync = ref.watch(monthIncomeProvider(monthKey));
     final categoriesAsync = ref.watch(categoriesStreamProvider(null));
 
+    // Build category lookup map only when categories are loaded
     final categoriesMap = {
       for (final c in categoriesAsync.value ?? <AppCategory>[]) c.id: c
     };
+    final categoriesLoaded = categoriesAsync.hasValue;
 
     return Scaffold(
       body: Column(
@@ -191,23 +193,29 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          ...categoryBudgets.map((b) {
-                            final cat = categoriesMap[b.categoryId];
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: _CategoryBudgetCard(
-                                budget: b,
-                                category: cat,
-                                monthKey: monthKey,
-                                onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        SetBudgetScreen(monthKey: monthKey),
+                          if (!categoriesLoaded)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8),
+                              child: LinearProgressIndicator(),
+                            )
+                          else
+                            ...categoryBudgets.map((b) {
+                              final cat = categoriesMap[b.categoryId];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: _CategoryBudgetCard(
+                                  budget: b,
+                                  category: cat,
+                                  monthKey: monthKey,
+                                  onTap: () => Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          SetBudgetScreen(monthKey: monthKey),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            );
-                          }),
+                              );
+                            }),
                           const SizedBox(height: 10),
                         ],
 

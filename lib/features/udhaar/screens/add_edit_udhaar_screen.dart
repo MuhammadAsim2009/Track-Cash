@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/date_formatter.dart';
-import '../../../data/fake/fake_seed_data.dart';
 import '../../../data/models/models.dart';
 import '../../../data/repositories/repository_providers.dart';
 import '../../../widgets/confirm_dialog.dart';
@@ -158,9 +157,10 @@ class _AddEditUdhaarScreenState extends ConsumerState<AddEditUdhaarScreen> {
       );
       await repo.updateUdhaar(updated);
     } else {
+      final currentUserId = ref.read(currentUserIdProvider);
       final newUdhaar = Udhaar(
         id: _uuid.v4(),
-        userId: kDemoUserId,
+        userId: currentUserId,
         walletId: _selectedWalletId,
         personName: name,
         amount: amount,

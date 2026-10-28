@@ -23,8 +23,8 @@ abstract class UdhaarRepository {
   /// Updates an existing udhaar record.
   Future<void> updateUdhaar(Udhaar udhaar);
 
-  /// Marks an udhaar entry as settled.
-  Future<void> markAsSettled(String id);
+  /// Marks an udhaar entry as settled, optionally recording which wallet paid/received the settlement.
+  Future<void> markAsSettled(String id, {String? settleWalletId});
 
   /// Soft-deletes an udhaar entry.
   Future<void> deleteUdhaar(String id);

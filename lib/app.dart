@@ -28,11 +28,11 @@ class TrackCashApp extends ConsumerWidget {
 
   Widget _buildHome(AuthState authState) {
     if (!authState.isAuthenticated) {
-      return const LoginScreen();
+      return const LoginScreen(key: ValueKey('login_screen'));
     }
     if (!authState.hasCompletedSetup) {
-      return const OpeningBalancesScreen();
+      return const OpeningBalancesScreen(key: ValueKey('opening_balances_screen'));
     }
-    return const MainNavigationScreen();
+    return const MainNavigationScreen(key: ValueKey('main_navigation_screen'));
   }
 }

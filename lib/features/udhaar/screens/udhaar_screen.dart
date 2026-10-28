@@ -9,6 +9,7 @@ import '../../../widgets/empty_state_view.dart';
 import '../../../widgets/tab_screen_wrapper.dart';
 import '../../../widgets/udhaar_tile.dart';
 import 'add_edit_udhaar_screen.dart';
+import '../widgets/settle_udhaar_dialog.dart';
 
 /// Complete Udhaar Screen with "I have to give" and "I have to take" tabs.
 class UdhaarScreen extends ConsumerStatefulWidget {
@@ -242,12 +243,11 @@ class _UdhaarScreenState extends ConsumerState<UdhaarScreen>
             );
           },
           onSettle: () async {
-            await ref.read(udhaarRepositoryProvider).markAsSettled(item.id);
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Marked ${item.personName} as settled')),
-              );
-            }
+            await showSettleUdhaarDialog(
+              context: context,
+              ref: ref,
+              udhaar: item,
+            );
           },
           onDelete: () async {
             final confirmed = await showConfirmDialog(

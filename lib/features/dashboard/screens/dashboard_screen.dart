@@ -12,6 +12,7 @@ import '../../../widgets/udhaar_tile.dart';
 import '../../../widgets/wallet_card.dart';
 import '../../transactions/screens/add_edit_transaction_screen.dart';
 import '../../transfers/screens/add_transfer_screen.dart';
+import '../../udhaar/widgets/settle_udhaar_dialog.dart';
 
 /// Complete Dashboard (Home tab) matching Phase 1 specifications.
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -38,6 +39,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final theme = Theme.of(context);
     final colors = context.colors;
 
+    final authState = ref.watch(authStateProvider);
+    final syncStatus = ref.watch(syncStatusProvider);
     final totalBalanceAsync = ref.watch(totalBalanceProvider);
     final walletsAsync = ref.watch(walletsStreamProvider);
     final currentMonthKey = DateFormatter.formatMonthKey(DateTime.now());
@@ -45,6 +48,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final totalBudgetAsync = ref.watch(totalBudgetProvider(currentMonthKey));
     final recentTxAsync = ref.watch(recentTransactionsProvider);
     final upcomingUdhaarAsync = ref.watch(upcomingUdhaarProvider);
+
+    // Greeting text based on time of day
+    final hour = DateTime.now().hour;
+    final greeting = hour < 12
+        ? 'Good morning'
+        : hour < 17
+            ? 'Good afternoon'
+            : 'Good evening';
+    final userName = authState.name ?? 'there';
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -59,6 +71,38 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ── Greeting Header ─────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '$greeting,',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        Text(
+                          userName,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  _SyncBadge(status: syncStatus),
+                ],
+              ),
+            ),
+
             // Total Balance Card
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -347,16 +391,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       udhaar: u,
                       walletName: u.walletId != null ? walletsMap[u.walletId] : null,
                       onSettle: () async {
-                        await ref
-                            .read(udhaarRepositoryProvider)
-                            .markAsSettled(u.id);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Marked ${u.personName} as settled'),
-                            ),
-                          );
-                        }
+                        await showSettleUdhaarDialog(
+                          context: context,
+                          ref: ref,
+                          udhaar: u,
+                        );
                       },
                     );
                   }).toList(),
@@ -534,6 +573,106 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Animated sync status badge for the dashboard greeting header.
+/// Shows one of three states driven by [SyncStatus].
+class _SyncBadge extends StatefulWidget {
+  const _SyncBadge({required this.status});
+  final SyncStatus status;
+
+  @override
+  State<_SyncBadge> createState() => _SyncBadgeState();
+}
+
+class _SyncBadgeState extends State<_SyncBadge>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _spinController;
+
+  @override
+  void initState() {
+    super.initState();
+    _spinController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    );
+    if (widget.status == SyncStatus.syncing) {
+      _spinController.repeat();
+    }
+  }
+
+  @override
+  void didUpdateWidget(_SyncBadge old) {
+    super.didUpdateWidget(old);
+    if (widget.status == SyncStatus.syncing) {
+      if (!_spinController.isAnimating) _spinController.repeat();
+    } else {
+      _spinController.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _spinController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    final Color bgColor;
+    final Color iconColor;
+    final IconData icon;
+    final String label;
+
+    switch (widget.status) {
+      case SyncStatus.syncing:
+        bgColor = theme.colorScheme.primaryContainer;
+        iconColor = theme.colorScheme.primary;
+        icon = Icons.sync_rounded;
+        label = 'Syncing';
+      case SyncStatus.synced:
+        bgColor = const Color(0xFFDCFCE7);
+        iconColor = const Color(0xFF16A34A);
+        icon = Icons.cloud_done_rounded;
+        label = 'Synced';
+      case SyncStatus.pending:
+        bgColor = const Color(0xFFFFF7ED);
+        iconColor = const Color(0xFFEA580C);
+        icon = Icons.cloud_off_rounded;
+        label = 'Pending';
+    }
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          widget.status == SyncStatus.syncing
+              ? RotationTransition(
+                  turns: _spinController,
+                  child: Icon(icon, size: 14, color: iconColor),
+                )
+              : Icon(icon, size: 14, color: iconColor),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: iconColor,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
+            ),
           ),
         ],
       ),

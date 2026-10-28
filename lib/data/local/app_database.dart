@@ -193,6 +193,57 @@ class AppDatabase {
     await db.update('wallets', {'opening_balance': 0});
   }
 
+  /// Clears all local data when a user logs out.
+  Future<void> clearLocalUserData() async {
+    final db = await database;
+    await db.delete('transactions');
+    await db.delete('transfers');
+    await db.delete('budgets');
+    await db.delete('udhaar');
+    await db.delete('wallets');
+    await db.delete('categories');
+  }
+
+  /// Seeds default wallets and categories for a specific user ID if they don't have them yet.
+  Future<void> seedUserInitialData(String userId) async {
+    final db = await database;
+    final existingWallets = await db.query(
+      'wallets',
+      where: 'user_id = ?',
+      whereArgs: [userId],
+      limit: 1,
+    );
+
+    if (existingWallets.isEmpty) {
+      final batch = db.batch();
+      final now = DateTime.now();
+
+      // Seed default wallets
+      for (final wallet in FakeSeedData.initialWallets) {
+        final userWallet = wallet.copyWith(
+          id: '${wallet.id}_$userId',
+          userId: userId,
+          createdAt: now,
+          updatedAt: now,
+        );
+        batch.insert('wallets', userWallet.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+
+      // Seed default categories
+      for (final category in FakeSeedData.initialCategories) {
+        final userCat = category.copyWith(
+          id: '${category.id}_$userId',
+          userId: userId,
+          createdAt: now,
+          updatedAt: now,
+        );
+        batch.insert('categories', userCat.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+
+      await batch.commit(noResult: true);
+    }
+  }
+
   /// Close database
   Future<void> close() async {
     final db = _database;

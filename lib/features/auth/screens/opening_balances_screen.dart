@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../widgets/money_input_field.dart';
-import '../../home/screens/main_navigation_screen.dart';
 import '../providers/auth_provider.dart';
 
 /// Opening Balances Setup Screen with live starting balance counter and visual wallet cards.
@@ -67,10 +66,8 @@ class _OpeningBalancesScreenState extends ConsumerState<OpeningBalancesScreen> {
         );
 
     if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
-      (route) => false,
-    );
+    // Popping any extra modal dialogs if any were open
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   @override
