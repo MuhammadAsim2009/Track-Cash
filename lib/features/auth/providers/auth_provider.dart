@@ -13,6 +13,9 @@ export '../../../data/sync/firestore_sync_service.dart' show SyncStatus;
 /// Stream providers watch this so they re-query SQLite after sync finishes.
 final syncTickProvider = StateProvider<int>((ref) => 0);
 
+/// True once the initial Firebase Auth state and initial data pull have completed on startup.
+final isAuthInitializedProvider = StateProvider<bool>((ref) => false);
+
 final syncStatusProvider = StateProvider<SyncStatus>((ref) => SyncStatus.synced);
 
 class AuthState {
@@ -61,7 +64,7 @@ class FirebaseAuthNotifier extends StateNotifier<AuthState> {
   final FirebaseAuth _auth;
   StreamSubscription<User?>? _sub;
 
-  void _init() {
+  void _init() async {
     FirestoreSyncService.syncStatusNotifier.addListener(() {
       if (mounted) {
         _ref.read(syncStatusProvider.notifier).state =
@@ -71,12 +74,17 @@ class FirebaseAuthNotifier extends StateNotifier<AuthState> {
 
     final current = _auth.currentUser;
     if (current != null) {
-      _applyUser(current);
+      await _applyUser(current);
+    }
+    if (mounted) {
+      _ref.read(isAuthInitializedProvider.notifier).state = true;
     }
 
     _sub = _auth.authStateChanges().listen((User? user) async {
       if (user != null) {
-        await _applyUser(user);
+        if (state.userId != user.uid) {
+          await _applyUser(user);
+        }
       } else {
         FirestoreSyncService.stopAutoSync();
         state = const AuthState(
@@ -86,6 +94,9 @@ class FirebaseAuthNotifier extends StateNotifier<AuthState> {
           name: null,
           hasCompletedSetup: false,
         );
+      }
+      if (mounted) {
+        _ref.read(isAuthInitializedProvider.notifier).state = true;
       }
     });
   }

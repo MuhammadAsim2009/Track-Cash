@@ -6,6 +6,7 @@ import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/opening_balances_screen.dart';
 import 'features/home/screens/main_navigation_screen.dart';
+import 'features/splash/screens/splash_screen.dart';
 
 /// Root TrackCash application widget with theme and authentication gate.
 class TrackCashApp extends ConsumerWidget {
@@ -15,6 +16,7 @@ class TrackCashApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
     final authState = ref.watch(authStateProvider);
+    final splashComplete = ref.watch(splashCompleteProvider);
 
     return MaterialApp(
       title: 'TrackCash',
@@ -22,11 +24,19 @@ class TrackCashApp extends ConsumerWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
-      home: _buildHome(authState),
+      home: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 400),
+        switchInCurve: Curves.easeInOut,
+        switchOutCurve: Curves.easeInOut,
+        child: _buildHome(authState, splashComplete),
+      ),
     );
   }
 
-  Widget _buildHome(AuthState authState) {
+  Widget _buildHome(AuthState authState, bool splashComplete) {
+    if (!splashComplete) {
+      return const SplashScreen(key: ValueKey('splash_screen'));
+    }
     if (!authState.isAuthenticated) {
       return const LoginScreen(key: ValueKey('login_screen'));
     }

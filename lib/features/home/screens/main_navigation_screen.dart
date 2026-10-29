@@ -38,7 +38,7 @@ class MainNavigationScreen extends ConsumerStatefulWidget {
 
 class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
   static const List<String> _titles = [
-    'TrackCash',
+    'Track Cash',
     'Transactions',
     'Monthly Budget',
     'Udhaar',
@@ -161,7 +161,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Log out'),
         content: const Text(
-          'Are you sure you want to log out of TrackCash?',
+          'Are you sure you want to log out of Track Cash?',
         ),
         actions: [
           TextButton(
