@@ -29,7 +29,7 @@ class AppDatabase {
 
     return await openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: _onCreate,
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -50,6 +50,12 @@ class AppDatabase {
             await db.execute('ALTER TABLE udhaar ADD COLUMN wallet_id TEXT;');
           } catch (_) {}
         }
+        if (oldVersion < 5) {
+          try {
+            await db.execute('ALTER TABLE wallets ADD COLUMN current_balance INTEGER NOT NULL DEFAULT 0;');
+            await db.execute('UPDATE wallets SET current_balance = opening_balance;');
+          } catch (_) {}
+        }
       },
     );
   }
@@ -62,6 +68,7 @@ class AppDatabase {
         name TEXT NOT NULL,
         type TEXT NOT NULL,
         opening_balance INTEGER NOT NULL DEFAULT 0,
+        current_balance INTEGER NOT NULL DEFAULT 0,
         count_in_daily_expense INTEGER NOT NULL DEFAULT 1,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
@@ -223,8 +230,10 @@ class AppDatabase {
         final userWallet = wallet.copyWith(
           id: '${wallet.id}_$userId',
           userId: userId,
+          currentBalance: wallet.openingBalance,
           createdAt: now,
           updatedAt: now,
+          synced: false,
         );
         batch.insert('wallets', userWallet.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
       }

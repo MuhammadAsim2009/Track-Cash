@@ -77,24 +77,28 @@ class SqliteBudgetsRepository implements BudgetsRepository {
 
     final existing = await db.query('budgets', where: where, whereArgs: whereArgs);
 
+    final toSaveId = existing.isNotEmpty ? (existing.first['id'] as String) : budget.id;
+    final budgetToSave = budget.copyWith(
+      id: toSaveId,
+      updatedAt: DateTime.now(),
+      synced: false,
+    );
+
     if (existing.isNotEmpty) {
-      final existingId = existing.first['id'] as String;
       await db.update(
         'budgets',
-        budget.copyWith(id: existingId, updatedAt: DateTime.now()).toMap(),
+        budgetToSave.toMap(),
         where: 'id = ?',
-        whereArgs: [existingId],
+        whereArgs: [toSaveId],
       );
     } else {
-      await db.insert('budgets', budget.toMap(),
+      await db.insert('budgets', budgetToSave.toMap(),
           conflictAlgorithm: ConflictAlgorithm.replace);
     }
 
     notifyListeners();
-    // Push whichever budget was upserted
-    final saved = await getTotalBudgetForMonth(budget.month) ??
-        (await getBudgetsForMonth(budget.month)).lastOrNull;
-    if (saved != null) unawaited(_sync.pushBudget(saved));
+    // Push the EXACT budget that was upserted (overall or category budget)
+    unawaited(_sync.pushBudget(budgetToSave));
   }
 
   @override

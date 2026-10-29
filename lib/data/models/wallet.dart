@@ -21,6 +21,7 @@ class Wallet {
     required this.name,
     required this.type,
     required this.openingBalance,
+    this.currentBalance = 0,
     required this.createdAt,
     required this.updatedAt,
     this.isDeleted = false,
@@ -33,6 +34,8 @@ class Wallet {
   final String name;
   final WalletType type;
   final int openingBalance;
+  /// Live current balance in whole rupees.
+  final int currentBalance;
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isDeleted;
@@ -46,6 +49,7 @@ class Wallet {
     String? name,
     WalletType? type,
     int? openingBalance,
+    int? currentBalance,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isDeleted,
@@ -58,6 +62,7 @@ class Wallet {
       name: name ?? this.name,
       type: type ?? this.type,
       openingBalance: openingBalance ?? this.openingBalance,
+      currentBalance: currentBalance ?? this.currentBalance,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
@@ -75,6 +80,7 @@ class Wallet {
         other.name == name &&
         other.type == type &&
         other.openingBalance == openingBalance &&
+        other.currentBalance == currentBalance &&
         other.createdAt == createdAt &&
         other.updatedAt == updatedAt &&
         other.isDeleted == isDeleted &&
@@ -89,6 +95,7 @@ class Wallet {
         name,
         type,
         openingBalance,
+        currentBalance,
         createdAt,
         updatedAt,
         isDeleted,
@@ -103,6 +110,7 @@ class Wallet {
       'name': name,
       'type': type.name,
       'opening_balance': openingBalance,
+      'current_balance': currentBalance,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
       'is_deleted': isDeleted ? 1 : 0,
@@ -112,12 +120,15 @@ class Wallet {
   }
 
   factory Wallet.fromMap(Map<String, dynamic> map) {
+    final opening = (map['opening_balance'] as num).toInt();
+    final current = (map['current_balance'] as num?)?.toInt() ?? opening;
     return Wallet(
       id: map['id'] as String,
       userId: map['user_id'] as String,
       name: map['name'] as String,
       type: WalletType.values.byName(map['type'] as String),
-      openingBalance: (map['opening_balance'] as num).toInt(),
+      openingBalance: opening,
+      currentBalance: current,
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
       isDeleted: (map['is_deleted'] as int? ?? 0) == 1,
@@ -128,5 +139,5 @@ class Wallet {
 
   @override
   String toString() =>
-      'Wallet(id: $id, name: $name, type: $type, openingBalance: $openingBalance, countInDailyExpense: $countInDailyExpense, isDeleted: $isDeleted)';
+      'Wallet(id: $id, name: $name, type: $type, openingBalance: $openingBalance, currentBalance: $currentBalance, countInDailyExpense: $countInDailyExpense, isDeleted: $isDeleted)';
 }

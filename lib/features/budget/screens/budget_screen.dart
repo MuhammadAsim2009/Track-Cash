@@ -136,7 +136,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
                 final spent = totalSpentAsync.value ?? 0;
                 final income = totalIncomeAsync.value ?? 0;
                 final daysLeft = _isCurrentMonth
-                    ? DateFormatter.daysLeftInMonth(_currentMonth)
+                    ? DateFormatter.daysLeftInMonth()
                     : null;
 
                 return RefreshIndicator(

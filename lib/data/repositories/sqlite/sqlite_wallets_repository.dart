@@ -20,9 +20,14 @@ class SqliteWalletsRepository implements WalletsRepository {
   final FirestoreSyncService _sync;
   final _changeController = StreamController<void>.broadcast();
 
-  void notifyListeners() {
+  void notifyListeners([String? walletId]) {
     if (!_changeController.isClosed) {
       _changeController.add(null);
+    }
+    if (walletId != null) {
+      unawaited(computeAndPersistWalletBalance(walletId));
+    } else {
+      unawaited(recalculateAllWallets());
     }
   }
 
@@ -118,6 +123,36 @@ class SqliteWalletsRepository implements WalletsRepository {
     return opening + income - expense + transfersIn - transfersOut - udhaarTake + udhaarGive;
   }
 
+  /// Computes the exact balance for [walletId] and updates `current_balance` in SQLite + Firestore.
+  Future<int> computeAndPersistWalletBalance(String walletId) async {
+    final balance = await getWalletBalance(walletId);
+    final db = await _db.database;
+    final now = DateTime.now().toIso8601String();
+    await db.update(
+      'wallets',
+      {
+        'current_balance': balance,
+        'updated_at': now,
+        'synced': 0,
+      },
+      where: 'id = ?',
+      whereArgs: [walletId],
+    );
+    final wallet = await getWalletById(walletId);
+    if (wallet != null) {
+      unawaited(_sync.pushWallet(wallet));
+    }
+    return balance;
+  }
+
+  /// Recalculates and persists current balance for all active wallets of this user.
+  Future<void> recalculateAllWallets() async {
+    final wallets = await getWallets();
+    for (final w in wallets) {
+      await computeAndPersistWalletBalance(w.id);
+    }
+  }
+
   @override
   Future<int> getTotalBalance() async {
     final db = await _db.database;
@@ -146,22 +181,34 @@ class SqliteWalletsRepository implements WalletsRepository {
   @override
   Future<void> createWallet(Wallet wallet) async {
     final db = await _db.database;
-    await db.insert('wallets', wallet.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    final now = DateTime.now();
+    final toSave = wallet.copyWith(
+      currentBalance: wallet.openingBalance,
+      createdAt: wallet.createdAt,
+      updatedAt: now,
+      synced: false,
+    );
+    await db.insert('wallets', toSave.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
     notifyListeners();
-    unawaited(_sync.pushWallet(wallet));
+    unawaited(_sync.pushWallet(toSave));
   }
 
   @override
   Future<void> updateWallet(Wallet wallet) async {
     final db = await _db.database;
+    final now = DateTime.now();
+    final toSave = wallet.copyWith(
+      updatedAt: now,
+      synced: false,
+    );
     await db.update(
       'wallets',
-      wallet.toMap(),
+      toSave.toMap(),
       where: 'id = ?',
-      whereArgs: [wallet.id],
+      whereArgs: [toSave.id],
     );
     notifyListeners();
-    unawaited(_sync.pushWallet(wallet));
+    unawaited(_sync.pushWallet(toSave));
   }
 
   @override

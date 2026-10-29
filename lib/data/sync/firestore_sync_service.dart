@@ -1,7 +1,13 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import '../local/app_database.dart';
 import '../models/models.dart';
+
+/// Sync status shown in the UI (e.g. dashboard badge).
+enum SyncStatus { syncing, synced, pending }
 
 /// Firestore collection name constants (sub-collections of users/{uid}/).
 class _Col {
@@ -23,6 +29,7 @@ class _Mapper {
         'name': m['name'],
         'type': m['type'],
         'openingBalance': m['opening_balance'],
+        'currentBalance': m['current_balance'] ?? m['opening_balance'] ?? 0,
         'countInDailyExpense': m['count_in_daily_expense'] == 1,
         'isDeleted': m['is_deleted'] == 1,
         'createdAt': m['created_at'],
@@ -35,6 +42,7 @@ class _Mapper {
         'name': m['name'],
         'type': m['type'],
         'opening_balance': m['openingBalance'] ?? 0,
+        'current_balance': m['currentBalance'] ?? m['openingBalance'] ?? 0,
         'count_in_daily_expense': (m['countInDailyExpense'] == true) ? 1 : 0,
         'is_deleted': (m['isDeleted'] == true) ? 1 : 0,
         'created_at': m['createdAt'],
@@ -210,6 +218,75 @@ class FirestoreSyncService {
   final FirebaseFirestore _fs;
   final AppDatabase _db;
 
+  static final ValueNotifier<SyncStatus> syncStatusNotifier =
+      ValueNotifier<SyncStatus>(SyncStatus.synced);
+
+  static SyncStatus get currentSyncStatus => syncStatusNotifier.value;
+
+  static void setSyncStatus(SyncStatus status) {
+    if (syncStatusNotifier.value != status) {
+      syncStatusNotifier.value = status;
+    }
+  }
+
+  static Future<bool> isOnline() async {
+    try {
+      final res = await InternetAddress.lookup('google.com')
+          .timeout(const Duration(seconds: 3));
+      return res.isNotEmpty && res[0].rawAddress.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> hasUnsyncedRows() async {
+    final db = await _db.database;
+    const tables = [
+      'wallets',
+      'categories',
+      'transactions',
+      'transfers',
+      'budgets',
+      'udhaar',
+    ];
+    for (final t in tables) {
+      final res = await db.rawQuery(
+        'SELECT 1 FROM $t WHERE user_id = ? AND synced = 0 LIMIT 1',
+        [_userId],
+      );
+      if (res.isNotEmpty) return true;
+    }
+    return false;
+  }
+
+  static Timer? _autoSyncTimer;
+
+  static void startAutoSync(String userId) {
+    _autoSyncTimer?.cancel();
+    _autoSyncTimer = Timer.periodic(const Duration(seconds: 4), (_) async {
+      final sync = FirestoreSyncService(userId);
+      final hasUnsynced = await sync.hasUnsyncedRows();
+      final online = await isOnline();
+
+      if (hasUnsynced) {
+        if (online) {
+          await sync.pushAllUnsynced();
+        } else {
+          setSyncStatus(SyncStatus.pending);
+        }
+      } else {
+        if (online && syncStatusNotifier.value == SyncStatus.pending) {
+          setSyncStatus(SyncStatus.synced);
+        }
+      }
+    });
+  }
+
+  static void stopAutoSync() {
+    _autoSyncTimer?.cancel();
+    _autoSyncTimer = null;
+  }
+
   CollectionReference<Map<String, dynamic>> _col(String name) =>
       _fs.collection('users').doc(_userId).collection(name);
 
@@ -222,18 +299,28 @@ class FirestoreSyncService {
     Map<String, dynamic> fsData,
     String sqlTable,
   ) async {
-    // ignore: avoid_print
-    print('[FirestoreSyncService] Pushing to users/$_userId/$collection/$docId: $fsData');
-    await _col(collection).doc(docId).set(fsData, SetOptions(merge: true));
-    final db = await _db.database;
-    await db.update(
-      sqlTable,
-      {'synced': 1},
-      where: 'id = ?',
-      whereArgs: [docId],
-    );
-    // ignore: avoid_print
-    print('[FirestoreSyncService] Successfully pushed and marked synced: $collection/$docId');
+    final online = await isOnline();
+    if (!online) {
+      setSyncStatus(SyncStatus.pending);
+      return;
+    }
+
+    setSyncStatus(SyncStatus.syncing);
+    try {
+      await _col(collection).doc(docId).set(fsData, SetOptions(merge: true));
+      final db = await _db.database;
+      await db.update(
+        sqlTable,
+        {'synced': 1},
+        where: 'id = ?',
+        whereArgs: [docId],
+      );
+      final hasPending = await hasUnsyncedRows();
+      setSyncStatus(hasPending ? SyncStatus.pending : SyncStatus.synced);
+    } catch (e) {
+      setSyncStatus(SyncStatus.pending);
+      rethrow;
+    }
   }
 
   /// Batch-push every row in [sqlTable] where synced = 0.
@@ -389,9 +476,20 @@ class FirestoreSyncService {
   // ── Catch-up push (call when coming back online) ───────────────────────────
 
   Future<void> pushAllUnsynced() async {
+    final online = await isOnline();
+    if (!online) {
+      setSyncStatus(SyncStatus.pending);
+      return;
+    }
+
+    final hasPending = await hasUnsyncedRows();
+    if (!hasPending) {
+      setSyncStatus(SyncStatus.synced);
+      return;
+    }
+
+    setSyncStatus(SyncStatus.syncing);
     try {
-      // ignore: avoid_print
-      print('[FirestoreSyncService] Starting pushAllUnsynced for user $_userId');
       await Future.wait([
         _pushUnsyncedRows('wallets', _Col.wallets, _Mapper.walletToFs),
         _pushUnsyncedRows('categories', _Col.categories, _Mapper.categoryToFs),
@@ -400,9 +498,10 @@ class FirestoreSyncService {
         _pushUnsyncedRows('budgets', _Col.budgets, _Mapper.budgetToFs),
         _pushUnsyncedRows('udhaar', _Col.udhaar, _Mapper.udhaarToFs),
       ]);
-      // ignore: avoid_print
-      print('[FirestoreSyncService] Completed pushAllUnsynced for user $_userId');
+      final stillPending = await hasUnsyncedRows();
+      setSyncStatus(stillPending ? SyncStatus.pending : SyncStatus.synced);
     } catch (e, st) {
+      setSyncStatus(SyncStatus.pending);
       // ignore: avoid_print
       print('[FirestoreSyncService] pushAllUnsynced error for user $_userId: $e\n$st');
     }

@@ -7,12 +7,11 @@ import '../../../data/models/models.dart';
 import '../../../data/repositories/sqlite/sqlite_wallets_repository.dart';
 import '../../../data/sync/firestore_sync_service.dart';
 
+export '../../../data/sync/firestore_sync_service.dart' show SyncStatus;
+
 /// Incremented every time a full Firestore → SQLite pull completes.
 /// Stream providers watch this so they re-query SQLite after sync finishes.
 final syncTickProvider = StateProvider<int>((ref) => 0);
-
-/// Sync status shown in the UI (e.g. dashboard badge).
-enum SyncStatus { syncing, synced, pending }
 
 final syncStatusProvider = StateProvider<SyncStatus>((ref) => SyncStatus.synced);
 
@@ -63,6 +62,13 @@ class FirebaseAuthNotifier extends StateNotifier<AuthState> {
   StreamSubscription<User?>? _sub;
 
   void _init() {
+    FirestoreSyncService.syncStatusNotifier.addListener(() {
+      if (mounted) {
+        _ref.read(syncStatusProvider.notifier).state =
+            FirestoreSyncService.currentSyncStatus;
+      }
+    });
+
     final current = _auth.currentUser;
     if (current != null) {
       _applyUser(current);
@@ -72,6 +78,7 @@ class FirebaseAuthNotifier extends StateNotifier<AuthState> {
       if (user != null) {
         await _applyUser(user);
       } else {
+        FirestoreSyncService.stopAutoSync();
         state = const AuthState(
           isAuthenticated: false,
           userId: null,
@@ -89,31 +96,41 @@ class FirebaseAuthNotifier extends StateNotifier<AuthState> {
 
     // Show syncing badge in the UI immediately
     _ref.read(syncStatusProvider.notifier).state = SyncStatus.syncing;
+    FirestoreSyncService.setSyncStatus(SyncStatus.syncing);
 
-    // Seed default wallets & categories for this user in SQLite if not yet present
-    await AppDatabase.instance.seedUserInitialData(user.uid);
-
-    // CRITICAL: Await pullAll() BEFORE setting authenticated state so that all
-    // SQLite tables are populated before the UI renders any screen. Without
-    // this await the repositories see empty tables on first render after a
-    // login / account-switch because pullAll() was still running in the
-    // background while screens were already mounted.
     final sync = FirestoreSyncService(user.uid);
+
+    // 1. Pull existing user data from Firestore first into SQLite!
     await sync.pullAll();
 
+    // 2. Seed default wallets & categories for this user in SQLite if not yet present
+    await AppDatabase.instance.seedUserInitialData(user.uid);
+
+    // 3. Recalculate all wallet balances to ensure current_balance is up-to-date
+    final walletsRepo = SqliteWalletsRepository(userId: user.uid);
+    await walletsRepo.recalculateAllWallets();
+
+    // 4. Start auto-sync watcher
+    FirestoreSyncService.startAutoSync(user.uid);
+
     // Increment the sync tick so any already-mounted stream providers
-    // re-query SQLite immediately (handles the case where _init() runs
-    // while the app is already showing the home screen, e.g. token refresh).
+    // re-query SQLite immediately
     _ref.read(syncTickProvider.notifier).update((t) => t + 1);
 
-    // Mark as synced — all remote data is now in SQLite
-    _ref.read(syncStatusProvider.notifier).state = SyncStatus.synced;
+    // Check if any unsynced rows remain
+    final hasPending = await sync.hasUnsyncedRows();
+    final status = hasPending ? SyncStatus.pending : SyncStatus.synced;
+    _ref.read(syncStatusProvider.notifier).state = status;
+    FirestoreSyncService.setSyncStatus(status);
 
     // Push any rows that were written offline while we were logged out.
-    // Run in background; if offline, mark as pending.
     unawaited(
-      sync.pushAllUnsynced().then((_) {
-        if (mounted) _ref.read(syncStatusProvider.notifier).state = SyncStatus.synced;
+      sync.pushAllUnsynced().then((_) async {
+        final pending = await sync.hasUnsyncedRows();
+        if (mounted) {
+          _ref.read(syncStatusProvider.notifier).state =
+              pending ? SyncStatus.pending : SyncStatus.synced;
+        }
       }).catchError((_) {
         if (mounted) _ref.read(syncStatusProvider.notifier).state = SyncStatus.pending;
       }),
@@ -191,16 +208,29 @@ class FirebaseAuthNotifier extends StateNotifier<AuthState> {
     final uid = state.userId ?? 'anonymous_user';
     final walletsRepo = SqliteWalletsRepository(userId: uid);
     final wallets = await walletsRepo.getWallets();
+    final now = DateTime.now();
 
     for (final wallet in wallets) {
+      int amount = 0;
       if (wallet.type == WalletType.cash) {
-        await walletsRepo.updateWallet(wallet.copyWith(openingBalance: cash));
+        amount = cash;
       } else if (wallet.type == WalletType.savings) {
-        await walletsRepo.updateWallet(wallet.copyWith(openingBalance: savings));
+        amount = savings;
       } else if (wallet.type == WalletType.mobileWallet) {
-        await walletsRepo.updateWallet(wallet.copyWith(openingBalance: mobileWallet));
+        amount = mobileWallet;
       }
+      await walletsRepo.updateWallet(
+        wallet.copyWith(
+          openingBalance: amount,
+          currentBalance: amount,
+          updatedAt: now,
+          synced: false,
+        ),
+      );
     }
+
+    final sync = FirestoreSyncService(uid);
+    await sync.pushAllUnsynced();
 
     if (state.userId != null) {
       final prefs = _ref.read(sharedPreferencesProvider);
@@ -212,7 +242,9 @@ class FirebaseAuthNotifier extends StateNotifier<AuthState> {
 
   /// Logout and clear local SQLite data to prevent cross-user data leaks
   Future<void> logout() async {
+    FirestoreSyncService.stopAutoSync();
     _ref.read(syncStatusProvider.notifier).state = SyncStatus.synced;
+    FirestoreSyncService.setSyncStatus(SyncStatus.synced);
     await _auth.signOut();
     await AppDatabase.instance.clearLocalUserData();
     state = const AuthState(
