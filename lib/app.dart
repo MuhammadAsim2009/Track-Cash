@@ -19,7 +19,7 @@ class TrackCashApp extends ConsumerWidget {
     final splashComplete = ref.watch(splashCompleteProvider);
 
     return MaterialApp(
-      title: 'TrackCash',
+      title: 'Track Cash',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,

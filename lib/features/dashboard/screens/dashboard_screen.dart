@@ -73,23 +73,59 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           children: [
             // ── Greeting Header ─────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
               child: Row(
                 children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          theme.colorScheme.primary,
+                          theme.colorScheme.primary.withValues(alpha: 0.75),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.25),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           '$greeting,',
-                          style: theme.textTheme.bodyMedium?.copyWith(
+                          style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
+                        const SizedBox(height: 1),
                         Text(
                           userName,
-                          style: theme.textTheme.titleLarge?.copyWith(
+                          style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
+                            letterSpacing: -0.2,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -97,122 +133,233 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   _SyncBadge(status: syncStatus),
                 ],
               ),
             ),
 
-            // Total Balance Card
+            // ── Hero Total Balance Card ─────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Card(
-                elevation: 0,
-                color: theme.colorScheme.surface,
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  gradient: LinearGradient(
+                    colors: theme.brightness == Brightness.dark
+                        ? const [
+                            Color(0xFF064E3B), // Deep emerald
+                            Color(0xFF022C22), // Near black emerald
+                          ]
+                        : const [
+                            Color(0xFF047857), // Rich emerald 700
+                            Color(0xFF065F46), // Emerald 800
+                          ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF064E3B).withValues(
+                        alpha: theme.brightness == Brightness.dark ? 0.4 : 0.25,
+                      ),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                      spreadRadius: -2,
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Stack(
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Total Balance',
-                            style: theme.textTheme.labelLarge?.copyWith(
-                              color: theme.textTheme.bodySmall?.color,
-                            ),
+                      // Subtle decorative background circles
+                      Positioned(
+                        top: -40,
+                        right: -40,
+                        child: Container(
+                          width: 140,
+                          height: 140,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withValues(alpha: 0.05),
                           ),
-                          IconButton(
-                            icon: Icon(
-                              _isBalanceVisible
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                              size: 20,
-                              color: theme.textTheme.bodySmall?.color,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _isBalanceVisible = !_isBalanceVisible;
-                              });
-                            },
-                            tooltip: _isBalanceVisible
-                                ? 'Hide balance'
-                                : 'Show balance',
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      totalBalanceAsync.when(
-                        data: (total) => Text(
-                          _isBalanceVisible
-                              ? CurrencyFormatter.format(total)
-                              : '••••••••',
-                          style: theme.textTheme.displayLarge,
                         ),
-                        loading: () => const Text('Loading...'),
-                        error: (_, _) => const Text('Error calculating balance'),
                       ),
-                      const SizedBox(height: 20),
+                      Positioned(
+                        bottom: -30,
+                        left: -20,
+                        child: Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withValues(alpha: 0.04),
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(22.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(
+                                        Icons.account_balance_wallet_outlined,
+                                        size: 14,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'TOTAL BALANCE',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 1.1,
+                                        color: Colors.white.withValues(alpha: 0.8),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: () {
+                                      setState(() {
+                                        _isBalanceVisible = !_isBalanceVisible;
+                                      });
+                                    },
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            _isBalanceVisible
+                                                ? Icons.visibility_outlined
+                                                : Icons.visibility_off_outlined,
+                                            size: 14,
+                                            color: Colors.white,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            _isBalanceVisible ? 'Hide' : 'Show',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            totalBalanceAsync.when(
+                              data: (total) => FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  _isBalanceVisible
+                                      ? CurrencyFormatter.format(total)
+                                      : '••••••••',
+                                  style: const TextStyle(
+                                    fontSize: 34,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.8,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                              loading: () => const Text(
+                                'Loading...',
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                              error: (_, _) => const Text(
+                                'Error calculating balance',
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                            ),
+                            const SizedBox(height: 22),
 
-                      // Quick Action Buttons (Add Income, Add Expense, Transfer)
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildQuickActionButton(
-                              context: context,
-                              icon: Icons.arrow_downward,
-                              label: 'Income',
-                              color: colors.income,
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        const AddEditTransactionScreen(
-                                      initialType: TransactionType.income,
-                                    ),
+                            // Quick Action Buttons inside hero
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildModernActionButton(
+                                    icon: Icons.south_west_rounded,
+                                    label: 'Income',
+                                    bgColor: const Color(0xFF10B981),
+                                    onTap: () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const AddEditTransactionScreen(
+                                            initialType: TransactionType.income,
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   ),
-                                );
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _buildQuickActionButton(
-                              context: context,
-                              icon: Icons.arrow_upward,
-                              label: 'Expense',
-                              color: colors.expense,
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        const AddEditTransactionScreen(
-                                      initialType: TransactionType.expense,
-                                    ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: _buildModernActionButton(
+                                    icon: Icons.north_east_rounded,
+                                    label: 'Expense',
+                                    bgColor: const Color(0xFFF43F5E),
+                                    onTap: () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const AddEditTransactionScreen(
+                                            initialType: TransactionType.expense,
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   ),
-                                );
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _buildQuickActionButton(
-                              context: context,
-                              icon: Icons.swap_horiz,
-                              label: 'Transfer',
-                              color: theme.colorScheme.primary,
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const AddTransferScreen(),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: _buildModernActionButton(
+                                    icon: Icons.swap_horiz_rounded,
+                                    label: 'Transfer',
+                                    bgColor: Colors.white.withValues(alpha: 0.22),
+                                    onTap: () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const AddTransferScreen(),
+                                        ),
+                                      );
+                                    },
                                   ),
-                                );
-                              },
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -222,12 +369,26 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
             // Wallets Section Header
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Text(
-                'My Wallets',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+              child: Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'My Wallets',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ],
               ),
             ),
 
@@ -352,19 +513,37 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
             // Upcoming Udhaar Section
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Upcoming Udhaar',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        width: 4,
+                        height: 18,
+                        decoration: BoxDecoration(
+                          color: colors.warning,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Upcoming Udhaar',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ],
                   ),
                   if (widget.onNavigateToUdhaar != null)
                     TextButton(
                       onPressed: widget.onNavigateToUdhaar,
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
                       child: const Text('See all'),
                     ),
                 ],
@@ -409,19 +588,37 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
             // Recent Transactions Section
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Recent Transactions',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        width: 4,
+                        height: 18,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Recent Transactions',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ],
                   ),
                   if (widget.onNavigateToTransactions != null)
                     TextButton(
                       onPressed: widget.onNavigateToTransactions,
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
                       child: const Text('See all'),
                     ),
                 ],
@@ -492,35 +689,43 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildQuickActionButton({
-    required BuildContext context,
+  Widget _buildModernActionButton({
     required IconData icon,
     required String label,
-    required Color color,
+    required Color bgColor,
     required VoidCallback onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.15),
+              width: 1,
             ),
-          ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: Colors.white, size: 16),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -625,29 +830,50 @@ class _SyncBadgeState extends State<_SyncBadge>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
-    final Color bgColor;
-    final Color iconColor;
-    final IconData icon;
-    final String label;
-
-    switch (widget.status) {
-      case SyncStatus.syncing:
-        bgColor = theme.colorScheme.primaryContainer;
-        iconColor = theme.colorScheme.primary;
-        icon = Icons.sync_rounded;
-        label = 'Syncing';
-      case SyncStatus.synced:
-        bgColor = const Color(0xFFDCFCE7);
-        iconColor = const Color(0xFF16A34A);
-        icon = Icons.cloud_done_rounded;
-        label = 'Synced';
-      case SyncStatus.pending:
-        bgColor = const Color(0xFFFFF7ED);
-        iconColor = const Color(0xFFEA580C);
-        icon = Icons.cloud_off_rounded;
-        label = 'Pending';
-    }
+    final (Color bgColor, Color iconColor, IconData icon, String label) =
+        switch (widget.status) {
+      SyncStatus.syncing => isDark
+          ? (
+              const Color(0xFF082F49), // Sky 950 deep blue
+              const Color(0xFF38BDF8), // Sky 400 bright sky blue
+              Icons.sync_rounded,
+              'Syncing',
+            )
+          : (
+              const Color(0xFFE0F2FE), // Sky 100 soft blue
+              const Color(0xFF0369A1), // Sky 700 crisp strong blue
+              Icons.sync_rounded,
+              'Syncing',
+            ),
+      SyncStatus.synced => isDark
+          ? (
+              const Color(0xFF064E3B), // Emerald 900
+              const Color(0xFF4ADE80), // Emerald 400
+              Icons.cloud_done_rounded,
+              'Synced',
+            )
+          : (
+              const Color(0xFFDCFCE7), // Green 100
+              const Color(0xFF15803D), // Green 700
+              Icons.cloud_done_rounded,
+              'Synced',
+            ),
+      SyncStatus.pending => isDark
+          ? (
+              const Color(0xFF7C2D12), // Orange 900
+              const Color(0xFFFB923C), // Orange 400
+              Icons.cloud_off_rounded,
+              'Pending',
+            )
+          : (
+              const Color(0xFFFFEDD5), // Orange 100
+              const Color(0xFFC2410C), // Orange 700
+              Icons.cloud_off_rounded,
+              'Pending',
+            ),
+    };
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -655,6 +881,10 @@ class _SyncBadgeState extends State<_SyncBadge>
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: iconColor.withValues(alpha: isDark ? 0.35 : 0.25),
+          width: 1,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

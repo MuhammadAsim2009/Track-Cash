@@ -1,6 +1,6 @@
 {
-    "name": "track_cash",
-    "short_name": "track_cash",
+    "name": "Track Cash",
+    "short_name": "Track Cash",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
