@@ -72,6 +72,7 @@ final walletsStreamProvider = StreamProvider<List<Wallet>>((ref) {
 
 final walletBalanceProvider =
     FutureProvider.family<int, String>((ref, walletId) async {
+  ref.watch(syncTickProvider);
   ref.watch(walletsStreamProvider);
   ref.watch(transactionsStreamProvider);
   ref.watch(transfersStreamProvider);
@@ -82,6 +83,7 @@ final walletBalanceProvider =
 
 final totalBalanceProvider = FutureProvider<int>((ref) async {
   // Re-evaluate when wallets, transactions, transfers or udhaar change
+  ref.watch(syncTickProvider);
   ref.watch(walletsStreamProvider);
   ref.watch(transactionsStreamProvider);
   ref.watch(transfersStreamProvider);

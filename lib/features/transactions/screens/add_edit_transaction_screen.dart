@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/app_toast.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../core/utils/icon_resolver.dart';
 import '../../../data/models/models.dart';
@@ -86,16 +87,12 @@ class _AddEditTransactionScreenState
     setState(() => _amountError = null);
 
     if (_selectedWalletId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a wallet')),
-      );
+      AppToast.warning(context, 'Please select a wallet');
       return;
     }
 
     if (_selectedCategoryId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a category')),
-      );
+      AppToast.warning(context, 'Please select a category');
       return;
     }
 
@@ -112,12 +109,7 @@ class _AddEditTransactionScreenState
         const errorMsg =
             'Savings wallet is excluded from daily expense. Enable the Daily toggle to use it.';
         setState(() => _amountError = errorMsg);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text(errorMsg),
-            backgroundColor: Colors.orange.shade700,
-          ),
-        );
+        AppToast.warning(context, errorMsg);
         return;
       }
 
@@ -137,12 +129,7 @@ class _AddEditTransactionScreenState
         final errorMsg =
             'Insufficient balance in $walletName! Available: ${CurrencyFormatter.format(effectiveBalance)}';
         setState(() => _amountError = errorMsg);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMsg),
-            backgroundColor: Colors.red.shade700,
-          ),
-        );
+        AppToast.error(context, errorMsg);
         return;
       }
     }
@@ -184,12 +171,11 @@ class _AddEditTransactionScreenState
     }
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_isEditing
-            ? 'Transaction updated successfully'
-            : 'Transaction added successfully'),
-      ),
+    AppToast.success(
+      context,
+      _isEditing
+          ? 'Transaction updated successfully'
+          : 'Transaction added successfully',
     );
     Navigator.of(context).pop();
   }
@@ -222,10 +208,9 @@ class _AddEditTransactionScreenState
             .deleteIncomeAndRevertDependent(tx.id);
 
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Income deleted and dependent transfers/expenses reverted'),
-          ),
+        AppToast.info(
+          context,
+          'Income deleted and dependent transfers/expenses reverted',
         );
         Navigator.of(context).pop();
         return;
@@ -246,9 +231,7 @@ class _AddEditTransactionScreenState
         .deleteTransaction(tx.id);
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Transaction deleted')),
-    );
+    AppToast.info(context, 'Transaction deleted');
     Navigator.of(context).pop();
   }
 

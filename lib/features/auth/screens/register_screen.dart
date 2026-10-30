@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/app_toast.dart';
 import '../providers/auth_provider.dart';
 
 /// Registration Screen with modern branding, form validation, and password strength checks.
@@ -46,12 +47,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      AppToast.error(context, e.toString());
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);

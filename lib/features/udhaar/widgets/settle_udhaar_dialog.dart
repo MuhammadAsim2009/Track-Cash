@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/utils/app_toast.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../data/models/models.dart';
 import '../../../data/repositories/repository_providers.dart';
@@ -132,10 +133,14 @@ Future<void> showSettleUdhaarDialog({
                         ),
                         title: Row(
                           children: [
-                            Text(
-                              wallet.name,
-                              style: TextStyle(
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                            Flexible(
+                              child: Text(
+                                wallet.name,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                                style: TextStyle(
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                ),
                               ),
                             ),
                             if (wallet.type == WalletType.savings) ...[
@@ -202,10 +207,9 @@ Future<void> showSettleUdhaarDialog({
           settleWalletId: selectedWallet,
         );
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Marked ${udhaar.personName} as settled successfully'),
-        ),
+      AppToast.success(
+        context,
+        'Marked ${udhaar.personName} as settled successfully',
       );
     }
   }

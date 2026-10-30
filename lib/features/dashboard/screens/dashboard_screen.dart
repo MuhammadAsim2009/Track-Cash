@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/app_toast.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../data/models/models.dart';
 import '../../../data/repositories/repository_providers.dart';
@@ -424,13 +425,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                       .read(walletsRepositoryProvider)
                                       .updateWallet(updated);
                                   if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(val
-                                            ? 'Savings money will now count in daily expense'
-                                            : 'Savings money excluded from daily expense'),
-                                        duration: const Duration(seconds: 2),
-                                      ),
+                                    AppToast.info(
+                                      context,
+                                      val
+                                          ? 'Savings money will now count in daily expense'
+                                          : 'Savings money excluded from daily expense',
                                     );
                                   }
                                 }

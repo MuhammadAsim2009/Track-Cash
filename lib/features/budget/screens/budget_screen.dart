@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/app_toast.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../core/utils/icon_resolver.dart';
 import '../../../data/models/models.dart';
@@ -67,21 +68,16 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
 
     if (!mounted) return;
     if (prevBudgets.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'No budget in ${DateFormatter.formatMonthYear(DateTime(_currentMonth.year, _currentMonth.month - 1))} to copy.',
-          ),
-        ),
+      AppToast.info(
+        context,
+        'No budget in ${DateFormatter.formatMonthYear(DateTime(_currentMonth.year, _currentMonth.month - 1))} to copy.',
       );
       return;
     }
 
     await repo.copyBudgetsFromMonth(fromMonth: fromMonth, toMonth: toMonth);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Copied previous month's budget ✓")),
-    );
+    AppToast.success(context, "Copied previous month's budget");
   }
 
   @override

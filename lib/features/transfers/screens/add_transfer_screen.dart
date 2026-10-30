@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/app_toast.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../data/models/models.dart';
 import '../../../data/repositories/repository_providers.dart';
@@ -81,17 +82,12 @@ class _AddTransferScreenState extends ConsumerState<AddTransferScreen> {
     setState(() => _errorText = null);
 
     if (_fromWalletId == null || _toWalletId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Please select both source and destination wallets')),
-      );
+      AppToast.warning(context, 'Please select both source and destination wallets');
       return;
     }
 
     if (_fromWalletId == _toWalletId) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('From and To wallets must be different')),
-      );
+      AppToast.warning(context, 'From and To wallets must be different');
       return;
     }
 
@@ -107,12 +103,7 @@ class _AddTransferScreenState extends ConsumerState<AddTransferScreen> {
       final errorMsg =
           'Insufficient balance in $walletName! Available: ${CurrencyFormatter.format(sourceBalance)}';
       setState(() => _errorText = errorMsg);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMsg),
-          backgroundColor: Colors.red.shade700,
-        ),
-      );
+      AppToast.error(context, errorMsg);
       return;
     }
 
@@ -136,9 +127,7 @@ class _AddTransferScreenState extends ConsumerState<AddTransferScreen> {
     await ref.read(transfersRepositoryProvider).addTransfer(transfer);
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Transfer recorded successfully ✓')),
-    );
+    AppToast.success(context, 'Transfer recorded successfully');
     Navigator.of(context).pop();
   }
 

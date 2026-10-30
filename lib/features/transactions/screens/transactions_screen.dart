@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/app_toast.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../data/models/models.dart';
 import '../../../data/repositories/repository_providers.dart';
@@ -635,11 +636,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                             .read(transactionsRepositoryProvider)
                                             .deleteIncomeAndRevertDependent(tx.id);
                                         if (context.mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                  'Income deleted and dependent transfers/expenses reverted'),
-                                            ),
+                                          AppToast.info(
+                                            context,
+                                            'Income deleted and dependent transfers/expenses reverted',
                                           );
                                         }
                                       }
@@ -659,12 +658,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                         .read(transactionsRepositoryProvider)
                                         .deleteTransaction(tx.id);
                                     if (context.mounted) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                            content:
-                                                Text('Transaction deleted')),
-                                      );
+                                      AppToast.info(context, 'Transaction deleted');
                                     }
                                   }
                                 },

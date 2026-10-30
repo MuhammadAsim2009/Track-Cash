@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/app_toast.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../data/models/models.dart';
 import '../../../data/repositories/repository_providers.dart';
@@ -101,9 +102,7 @@ class _AddEditUdhaarScreenState extends ConsumerState<AddEditUdhaarScreen> {
     setState(() => _amountError = null);
 
     if (_selectedWalletId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a wallet')),
-      );
+      AppToast.warning(context, 'Please select a wallet');
       return;
     }
 
@@ -129,12 +128,7 @@ class _AddEditUdhaarScreenState extends ConsumerState<AddEditUdhaarScreen> {
         final errorMsg =
             'Insufficient balance in $walletName! Available: ${CurrencyFormatter.format(effectiveBalance)}';
         setState(() => _amountError = errorMsg);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMsg),
-            backgroundColor: Colors.red.shade700,
-          ),
-        );
+        AppToast.error(context, errorMsg);
         return;
       }
     }
@@ -177,12 +171,11 @@ class _AddEditUdhaarScreenState extends ConsumerState<AddEditUdhaarScreen> {
     }
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_isEditing
-            ? 'Udhaar updated successfully'
-            : 'Udhaar added successfully'),
-      ),
+    AppToast.success(
+      context,
+      _isEditing
+          ? 'Udhaar updated successfully'
+          : 'Udhaar added successfully',
     );
     Navigator.of(context).pop();
   }
@@ -200,9 +193,7 @@ class _AddEditUdhaarScreenState extends ConsumerState<AddEditUdhaarScreen> {
         .deleteUdhaar(widget.initialUdhaar!.id);
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Udhaar deleted')),
-    );
+    AppToast.info(context, 'Udhaar deleted');
     Navigator.of(context).pop();
   }
 

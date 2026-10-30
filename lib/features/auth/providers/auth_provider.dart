@@ -248,6 +248,9 @@ class FirebaseAuthNotifier extends StateNotifier<AuthState> {
       await prefs.setBool('setup_completed_${state.userId}', true);
     }
 
+    // Refresh syncTick and invalidate balance caches so Dashboard gets immediate live amounts
+    _ref.read(syncTickProvider.notifier).update((t) => t + 1);
+
     state = state.copyWith(hasCompletedSetup: true);
   }
 

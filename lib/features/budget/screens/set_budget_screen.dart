@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/app_toast.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../core/utils/icon_resolver.dart';
 import '../../../data/models/models.dart';
@@ -139,9 +140,7 @@ class _SetBudgetScreenState extends ConsumerState<SetBudgetScreen> {
     }
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Budget saved successfully ✓')),
-    );
+    AppToast.success(context, 'Budget saved successfully');
     Navigator.of(context).pop();
   }
 

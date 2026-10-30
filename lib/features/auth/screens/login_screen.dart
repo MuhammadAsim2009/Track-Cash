@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/utils/app_toast.dart';
 import '../providers/auth_provider.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
@@ -38,12 +39,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      AppToast.error(context, e.toString());
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);

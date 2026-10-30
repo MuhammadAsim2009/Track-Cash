@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/app_toast.dart';
 import '../../../data/models/models.dart';
 import '../../../data/repositories/repository_providers.dart';
 import '../../../widgets/confirm_dialog.dart';
@@ -259,9 +260,7 @@ class _UdhaarScreenState extends ConsumerState<UdhaarScreen>
             if (confirmed && context.mounted) {
               await ref.read(udhaarRepositoryProvider).deleteUdhaar(item.id);
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Udhaar record deleted')),
-                );
+                AppToast.info(context, 'Udhaar record deleted');
               }
             }
           },
