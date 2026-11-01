@@ -223,16 +223,14 @@ class _UdhaarScreenState extends ConsumerState<UdhaarScreen>
       );
     }
 
-    final walletsMap = {
-      for (final w in ref.watch(walletsStreamProvider).value ?? <Wallet>[]) w.id: w.name
-    };
+    final allWalletsMap = ref.watch(allWalletsMapProvider).value ?? const <String, Wallet>{};
 
     return ListView.builder(
       padding: EdgeInsets.only(top: 8, bottom: TabScreenWrapper.bottomPadding(context)),
       itemCount: filtered.length,
       itemBuilder: (context, index) {
         final item = filtered[index];
-        final walletName = item.walletId != null ? walletsMap[item.walletId] : null;
+        final walletName = item.walletId != null ? allWalletsMap[item.walletId]?.name : null;
         return UdhaarTile(
           udhaar: item,
           walletName: walletName,

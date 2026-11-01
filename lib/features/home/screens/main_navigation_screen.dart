@@ -16,10 +16,12 @@ import '../../transactions/screens/transactions_screen.dart';
 import '../../transfers/screens/transfers_screen.dart';
 import '../../udhaar/screens/add_edit_udhaar_screen.dart';
 import '../../udhaar/screens/udhaar_screen.dart';
+import '../../wallets/screens/wallets_screen.dart';
 import '../providers/navigation_provider.dart';
 
 enum MoreMenuAction {
   profile,
+  wallets,
   categories,
   transfers,
   theme,
@@ -81,6 +83,11 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
       case MoreMenuAction.profile:
         Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const ProfileScreen()),
+        );
+        break;
+      case MoreMenuAction.wallets:
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const WalletsScreen()),
         );
         break;
       case MoreMenuAction.categories:
@@ -227,6 +234,16 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
                     Icon(Icons.person_outline, size: 20),
                     SizedBox(width: 12),
                     Text('Profile & Settings'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: MoreMenuAction.wallets,
+                child: Row(
+                  children: [
+                    Icon(Icons.account_balance_wallet_outlined, size: 20),
+                    SizedBox(width: 12),
+                    Text('Wallets'),
                   ],
                 ),
               ),

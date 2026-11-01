@@ -5,6 +5,9 @@ abstract class WalletsRepository {
   /// Returns all active (non-deleted) wallets.
   Future<List<Wallet>> getWallets();
 
+  /// Returns all wallets including soft-deleted ones (for transaction resolution).
+  Future<List<Wallet>> getAllWalletsIncludeDeleted();
+
   /// Watches all active wallets as a stream.
   Stream<List<Wallet>> watchWallets();
 

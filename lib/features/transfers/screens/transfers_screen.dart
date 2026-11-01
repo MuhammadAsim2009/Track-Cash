@@ -25,11 +25,9 @@ class TransfersScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final colors = context.colors;
     final transfersAsync = ref.watch(transfersStreamProvider);
-    final walletsAsync = ref.watch(walletsStreamProvider);
+    final allWalletsMapAsync = ref.watch(allWalletsMapProvider);
 
-    final walletsMap = {
-      for (final w in walletsAsync.value ?? <Wallet>[]) w.id: w
-    };
+    final walletsMap = allWalletsMapAsync.value ?? const <String, Wallet>{};
 
     return Scaffold(
       appBar: AppBar(

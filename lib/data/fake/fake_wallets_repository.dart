@@ -37,6 +37,9 @@ class FakeWalletsRepository implements WalletsRepository {
   Future<List<Wallet>> getWallets() async => _active;
 
   @override
+  Future<List<Wallet>> getAllWalletsIncludeDeleted() async => _wallets;
+
+  @override
   Stream<List<Wallet>> watchWallets() {
     // Emit current state immediately to every new subscriber, then follow live updates.
     return Stream.multi((controller) {

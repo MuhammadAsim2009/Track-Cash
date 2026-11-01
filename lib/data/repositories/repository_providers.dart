@@ -70,6 +70,16 @@ final walletsStreamProvider = StreamProvider<List<Wallet>>((ref) {
   return repo.watchWallets();
 });
 
+/// Map of all wallets (including soft-deleted ones) so past transactions and transfers
+/// always display the wallet's name properly even after deletion.
+final allWalletsMapProvider = FutureProvider<Map<String, Wallet>>((ref) async {
+  ref.watch(syncTickProvider);
+  ref.watch(walletsStreamProvider);
+  final repo = ref.watch(walletsRepositoryProvider);
+  final list = await repo.getAllWalletsIncludeDeleted();
+  return {for (final w in list) w.id: w};
+});
+
 final walletBalanceProvider =
     FutureProvider.family<int, String>((ref, walletId) async {
   ref.watch(syncTickProvider);

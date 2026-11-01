@@ -44,6 +44,18 @@ class SqliteWalletsRepository implements WalletsRepository {
   }
 
   @override
+  Future<List<Wallet>> getAllWalletsIncludeDeleted() async {
+    final db = await _db.database;
+    final maps = await db.query(
+      'wallets',
+      where: 'user_id = ?',
+      whereArgs: [_userId],
+      orderBy: "CASE type WHEN 'cash' THEN 0 WHEN 'mobileWallet' THEN 1 ELSE 2 END ASC",
+    );
+    return maps.map(Wallet.fromMap).toList();
+  }
+
+  @override
   Stream<List<Wallet>> watchWallets() async* {
     yield await getWallets();
     yield* _changeController.stream.asyncMap((_) => getWallets());
@@ -54,7 +66,7 @@ class SqliteWalletsRepository implements WalletsRepository {
     final db = await _db.database;
     final maps = await db.query(
       'wallets',
-      where: 'id = ? AND is_deleted = 0',
+      where: 'id = ?',
       whereArgs: [id],
       limit: 1,
     );

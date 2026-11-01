@@ -71,11 +71,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final monthKey = DateFormatter.formatMonthKey(_currentMonth);
     final txsAsync = ref.watch(transactionsStreamProvider);
     final walletsAsync = ref.watch(walletsStreamProvider);
+    final allWalletsMapAsync = ref.watch(allWalletsMapProvider);
     final categoriesAsync = ref.watch(categoriesStreamProvider(null));
 
-    final walletsMap = {
-      for (final w in walletsAsync.value ?? <Wallet>[]) w.id: w
-    };
+    final walletsMap = allWalletsMapAsync.value ?? const <String, Wallet>{};
     final categoriesMap = {
       for (final c in categoriesAsync.value ?? <AppCategory>[]) c.id: c
     };

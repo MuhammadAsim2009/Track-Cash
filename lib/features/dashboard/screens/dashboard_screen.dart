@@ -15,6 +15,7 @@ import '../../profile/screens/profile_screen.dart';
 import '../../transactions/screens/add_edit_transaction_screen.dart';
 import '../../transfers/screens/add_transfer_screen.dart';
 import '../../udhaar/widgets/settle_udhaar_dialog.dart';
+import '../../wallets/screens/wallets_screen.dart';
 
 /// Complete Dashboard (Home tab) matching Phase 1 specifications.
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -384,22 +385,39 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    width: 4,
-                    height: 18,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        width: 4,
+                        height: 18,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'My Wallets',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'My Wallets',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.2,
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const WalletsScreen()),
+                      );
+                    },
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
                     ),
+                    child: const Text('Manage'),
                   ),
                 ],
               ),
@@ -480,20 +498,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         return Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Monthly Budget',
-                                  style: theme.textTheme.titleMedium,
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'No budget set for ${DateFormatter.formatMonthYear(DateTime.now())}',
-                                  style: theme.textTheme.bodySmall,
-                                ),
-                              ],
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Monthly Budget',
+                                    style: theme.textTheme.titleMedium,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'No budget set for ${DateFormatter.formatMonthYear(DateTime.now())}',
+                                    style: theme.textTheme.bodySmall,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
                             ),
+                            const SizedBox(width: 8),
                             FilledButton.tonal(
                               onPressed: widget.onNavigateToBudget,
                               child: const Text('Set Budget'),
@@ -572,14 +595,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                   );
                 }
-                final walletsList = walletsAsync.value ?? <Wallet>[];
-                final walletsMap = {for (final w in walletsList) w.id: w.name};
+                final allWalletsMap = ref.watch(allWalletsMapProvider).value ?? const <String, Wallet>{};
 
                 return Column(
                   children: udhaarList.take(2).map((u) {
                     return UdhaarTile(
                       udhaar: u,
-                      walletName: u.walletId != null ? walletsMap[u.walletId] : null,
+                      walletName: u.walletId != null ? allWalletsMap[u.walletId]?.name : null,
                       onSettle: () async {
                         await showSettleUdhaarDialog(
                           context: context,
@@ -650,12 +672,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
                 final categoriesAsync =
                     ref.watch(categoriesStreamProvider(null));
+                final allWalletsMap =
+                    ref.watch(allWalletsMapProvider).value ?? const <String, Wallet>{};
                 final categoriesMap = {
                   for (final cat in categoriesAsync.value ?? <AppCategory>[])
                     cat.id: cat
-                };
-                final walletsMap = {
-                  for (final w in walletsAsync.value ?? <Wallet>[]) w.id: w
                 };
 
                 return Card(
@@ -676,7 +697,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       return TransactionTile(
                         transaction: tx,
                         category: categoriesMap[tx.categoryId],
-                        wallet: walletsMap[tx.walletId],
+                        wallet: allWalletsMap[tx.walletId],
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
