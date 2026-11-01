@@ -4,11 +4,11 @@ import '../../../core/utils/app_toast.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../data/models/models.dart';
 import '../../../data/repositories/repository_providers.dart';
+import '../../../widgets/money_input_field.dart';
 
-/// Shows an intelligent settlement dialog that checks wallet balance.
-/// If the linked wallet does not have enough balance to settle (for "I have to give" debts),
-/// or if the user wants to choose a different wallet, it presents all wallets
-/// (including savings even if daily expense toggle is off).
+/// Shows an intelligent partial or full settlement dialog for an [udhaar] record.
+/// Allows the user to settle the full remaining amount or enter a partial payment,
+/// and choose which wallet the payment should come from or go into.
 Future<void> showSettleUdhaarDialog({
   required BuildContext context,
   required WidgetRef ref,
@@ -26,70 +26,172 @@ Future<void> showSettleUdhaarDialog({
   if (!context.mounted) return;
 
   final isGive = udhaar.direction == UdhaarDirection.give;
+  final remaining = udhaar.remainingAmount;
   final linkedWalletId = udhaar.walletId;
-  final linkedBalance = linkedWalletId != null ? (walletBalances[linkedWalletId] ?? 0) : 0;
-  final isShortOnLinkedWallet = isGive && linkedBalance < udhaar.amount;
 
-  // Initial selection: if linked wallet has sufficient balance, default to it;
-  // otherwise default to a wallet with enough balance (or first available).
-  String? selectedWalletId = linkedWalletId;
-  if (isGive && isShortOnLinkedWallet) {
-    final solventWallet = allWallets.where((w) => (walletBalances[w.id] ?? 0) >= udhaar.amount).firstOrNull;
-    if (solventWallet != null) {
-      selectedWalletId = solventWallet.id;
+  // Initial selection: prefer linked wallet if solvent, or pick first wallet
+  String? selectedWalletId = linkedWalletId ?? allWallets.firstOrNull?.id;
+  if (isGive && selectedWalletId != null) {
+    final balance = walletBalances[selectedWalletId] ?? 0;
+    if (balance <= 0) {
+      final solvent = allWallets.where((w) => (walletBalances[w.id] ?? 0) > 0).firstOrNull;
+      if (solvent != null) selectedWalletId = solvent.id;
     }
   }
 
-  final selectedWallet = await showDialog<String?>(
+  final result = await showDialog<({String walletId, int amount})?>(
     context: context,
     builder: (ctx) {
       String? currentSelectedId = selectedWalletId;
+      bool isFullSettlement = true;
+      final amountController = TextEditingController(text: remaining.toString());
+      String? customAmountError;
+
       return StatefulBuilder(
         builder: (context, setState) {
           final currentBal = currentSelectedId != null ? (walletBalances[currentSelectedId] ?? 0) : 0;
-          final isCurrentInsufficient = isGive && currentBal < udhaar.amount;
+          final parsedAmount = isFullSettlement
+              ? remaining
+              : CurrencyFormatter.parse(amountController.text);
+
+          final isInsufficient = isGive && currentBal < parsedAmount;
 
           return AlertDialog(
-            title: Text(isGive ? 'Pay Back Udhaar' : 'Settle Udhaar'),
+            title: Text(isGive ? 'Pay Back Udhaar' : 'Receive Udhaar Payment'),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    isGive
-                        ? 'You are paying back ${CurrencyFormatter.format(udhaar.amount)} to ${udhaar.personName}.'
-                        : 'Confirm receiving ${CurrencyFormatter.format(udhaar.amount)} from ${udhaar.personName}.',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 16),
-
-                  if (isGive && isShortOnLinkedWallet && linkedWalletId != null) ...[
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Linked wallet has insufficient balance (${CurrencyFormatter.format(linkedBalance)}). Please choose another wallet to pay from.',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Colors.orange.shade900,
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                  // Total & Remaining summary banner
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Total Udhaar:',
+                              style: Theme.of(context).textTheme.bodySmall,
                             ),
+                            Text(
+                              CurrencyFormatter.format(udhaar.amount),
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                        if (udhaar.paidAmount > 0) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Already Settled:',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Colors.green.shade700,
+                                    ),
+                              ),
+                              Text(
+                                CurrencyFormatter.format(udhaar.paidAmount),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.green.shade700,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
-                      ),
+                        const Divider(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Remaining Balance:',
+                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                            Text(
+                              CurrencyFormatter.format(remaining),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: isGive ? Colors.red.shade700 : Colors.green.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Settlement Type Toggle (Full vs Partial)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Center(child: Text('Full Settlement')),
+                          selected: isFullSettlement,
+                          onSelected: (val) {
+                            if (val) {
+                              setState(() {
+                                isFullSettlement = true;
+                                amountController.text = remaining.toString();
+                                customAmountError = null;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Center(child: Text('Partial Payment')),
+                          selected: !isFullSettlement,
+                          onSelected: (val) {
+                            if (val) {
+                              setState(() {
+                                isFullSettlement = false;
+                                customAmountError = null;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // If Partial, show Money Input Field
+                  if (!isFullSettlement) ...[
+                    const SizedBox(height: 14),
+                    MoneyInputField(
+                      controller: amountController,
+                      labelText: isGive ? 'Repayment Amount' : 'Received Amount',
+                      errorText: customAmountError,
+                      onChanged: (_) {
+                        final val = CurrencyFormatter.parse(amountController.text);
+                        setState(() {
+                          if (val <= 0) {
+                            customAmountError = 'Enter an amount > 0';
+                          } else if (val > remaining) {
+                            customAmountError = 'Cannot exceed remaining ${CurrencyFormatter.format(remaining)}';
+                          } else {
+                            customAmountError = null;
+                          }
+                        });
+                      },
+                    ),
                   ],
+
+                  const SizedBox(height: 16),
 
                   Text(
                     isGive ? 'Pay from wallet:' : 'Deposit into wallet:',
@@ -101,7 +203,7 @@ Future<void> showSettleUdhaarDialog({
 
                   ...allWallets.map((wallet) {
                     final balance = walletBalances[wallet.id] ?? 0;
-                    final isInsufficient = isGive && balance < udhaar.amount;
+                    final isWalletInsufficient = isGive && balance < parsedAmount;
                     final isSelected = wallet.id == currentSelectedId;
 
                     return Card(
@@ -153,7 +255,11 @@ Future<void> showSettleUdhaarDialog({
                                 ),
                                 child: const Text(
                                   'Savings',
-                                  style: TextStyle(fontSize: 10, color: Colors.purple, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.purple,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ],
@@ -162,7 +268,7 @@ Future<void> showSettleUdhaarDialog({
                         subtitle: Text(
                           'Available: ${CurrencyFormatter.format(balance)}',
                           style: TextStyle(
-                            color: isInsufficient ? Colors.red.shade700 : null,
+                            color: isWalletInsufficient ? Colors.red.shade700 : null,
                             fontSize: 12,
                           ),
                         ),
@@ -189,10 +295,20 @@ Future<void> showSettleUdhaarDialog({
                 child: const Text('Cancel'),
               ),
               FilledButton(
-                onPressed: isCurrentInsufficient
+                onPressed: (isInsufficient ||
+                        parsedAmount <= 0 ||
+                        parsedAmount > remaining ||
+                        currentSelectedId == null)
                     ? null
-                    : () => Navigator.of(ctx).pop(currentSelectedId ?? ''),
-                child: const Text('Confirm Settlement'),
+                    : () {
+                        Navigator.of(ctx).pop((
+                          walletId: currentSelectedId!,
+                          amount: parsedAmount,
+                        ));
+                      },
+                child: Text(isFullSettlement
+                    ? 'Confirm Settlement'
+                    : 'Pay ${CurrencyFormatter.format(parsedAmount)}'),
               ),
             ],
           );
@@ -201,16 +317,30 @@ Future<void> showSettleUdhaarDialog({
     },
   );
 
-  if (selectedWallet != null && selectedWallet.isNotEmpty && context.mounted) {
-    await ref.read(udhaarRepositoryProvider).markAsSettled(
+  if (result != null && context.mounted) {
+    final payAmount = result.amount;
+    final settleWalletId = result.walletId;
+
+    await ref.read(udhaarRepositoryProvider).recordPartialPayment(
           udhaar.id,
-          settleWalletId: selectedWallet,
+          amount: payAmount,
+          settleWalletId: settleWalletId,
         );
+
     if (context.mounted) {
-      AppToast.success(
-        context,
-        'Marked ${udhaar.personName} as settled successfully',
-      );
+      final isNowFullySettled = (udhaar.paidAmount + payAmount) >= udhaar.amount;
+      if (isNowFullySettled) {
+        AppToast.success(
+          context,
+          'Udhaar with ${udhaar.personName} fully settled! ✓',
+        );
+      } else {
+        final left = udhaar.amount - (udhaar.paidAmount + payAmount);
+        AppToast.success(
+          context,
+          'Paid ${CurrencyFormatter.format(payAmount)}. Remaining: ${CurrencyFormatter.format(left)}',
+        );
+      }
     }
   }
 }

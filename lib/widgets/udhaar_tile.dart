@@ -106,14 +106,30 @@ class UdhaarTile extends StatelessWidget {
                     ],
                   ),
 
-                  // Amount
-                  Text(
-                    CurrencyFormatter.format(udhaar.amount),
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: isSettled ? theme.textTheme.bodySmall?.color : null,
-                      decoration: isSettled ? TextDecoration.lineThrough : null,
-                    ),
+                  // Amount & Remaining
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        CurrencyFormatter.format(udhaar.amount),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: isSettled ? theme.textTheme.bodySmall?.color : null,
+                          decoration: isSettled ? TextDecoration.lineThrough : null,
+                        ),
+                      ),
+                      if (udhaar.isPartiallyPaid && !isSettled) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          'Left: ${CurrencyFormatter.format(udhaar.remainingAmount)}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: directionColor,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),

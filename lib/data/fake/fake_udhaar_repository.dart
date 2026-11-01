@@ -78,9 +78,32 @@ class FakeUdhaarRepository implements UdhaarRepository {
   Future<void> markAsSettled(String id, {String? settleWalletId}) async {
     final index = _udhaarList.indexWhere((u) => u.id == id);
     if (index != -1) {
-      _udhaarList[index] = _udhaarList[index].copyWith(
-        walletId: settleWalletId ?? _udhaarList[index].walletId,
+      final u = _udhaarList[index];
+      _udhaarList[index] = u.copyWith(
+        walletId: settleWalletId ?? u.walletId,
+        paidAmount: u.amount,
         status: UdhaarStatus.settled,
+        updatedAt: DateTime.now(),
+      );
+      _notify();
+    }
+  }
+
+  @override
+  Future<void> recordPartialPayment(
+    String id, {
+    required int amount,
+    String? settleWalletId,
+  }) async {
+    final index = _udhaarList.indexWhere((u) => u.id == id);
+    if (index != -1) {
+      final u = _udhaarList[index];
+      final newPaid = u.paidAmount + amount;
+      final isFull = newPaid >= u.amount;
+      _udhaarList[index] = u.copyWith(
+        walletId: settleWalletId ?? u.walletId,
+        paidAmount: newPaid,
+        status: isFull ? UdhaarStatus.settled : UdhaarStatus.pending,
         updatedAt: DateTime.now(),
       );
       _notify();

@@ -104,17 +104,17 @@ class SqliteWalletsRepository implements WalletsRepository {
     final transfersOut = (transfersOutResult.first['total'] as num).toInt();
 
     // Udhaar:
-    // "I have to take" (direction='take') = lent money out -> deducts from wallet
+    // "I have to take" (direction='take') = lent money out -> net amount still out is (amount - paid_amount)
     final udhaarTakeResult = await db.rawQuery('''
-      SELECT COALESCE(SUM(amount), 0) as total
+      SELECT COALESCE(SUM(amount - paid_amount), 0) as total
       FROM udhaar
       WHERE wallet_id = ? AND direction = 'take' AND status = 'pending' AND is_deleted = 0
     ''', [walletId]);
     final udhaarTake = (udhaarTakeResult.first['total'] as num).toInt();
 
-    // "I have to give" (direction='give') = borrowed money in -> adds to wallet
+    // "I have to give" (direction='give') = borrowed money in -> net amount still owed is (amount - paid_amount)
     final udhaarGiveResult = await db.rawQuery('''
-      SELECT COALESCE(SUM(amount), 0) as total
+      SELECT COALESCE(SUM(amount - paid_amount), 0) as total
       FROM udhaar
       WHERE wallet_id = ? AND direction = 'give' AND status = 'pending' AND is_deleted = 0
     ''', [walletId]);

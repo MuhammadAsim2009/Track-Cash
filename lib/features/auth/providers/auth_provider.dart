@@ -254,6 +254,45 @@ class FirebaseAuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(hasCompletedSetup: true);
   }
 
+  /// Update user display name
+  Future<void> updateDisplayName(String newName) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    try {
+      await user.updateDisplayName(newName);
+      await user.reload();
+      final reloaded = _auth.currentUser;
+      state = state.copyWith(
+        name: reloaded?.displayName ?? newName,
+      );
+    } on FirebaseAuthException catch (e) {
+      throw _mapFirebaseAuthError(e);
+    }
+  }
+
+  /// Change user password (requires current password verification)
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null || user.email == null) {
+      throw 'No authenticated user found.';
+    }
+    try {
+      // Re-authenticate user first
+      final cred = EmailAuthProvider.credential(
+        email: user.email!,
+        password: currentPassword,
+      );
+      await user.reauthenticateWithCredential(cred);
+      // Update password
+      await user.updatePassword(newPassword);
+    } on FirebaseAuthException catch (e) {
+      throw _mapFirebaseAuthError(e);
+    }
+  }
+
   /// Logout and clear local SQLite data to prevent cross-user data leaks
   Future<void> logout() async {
     FirestoreSyncService.stopAutoSync();

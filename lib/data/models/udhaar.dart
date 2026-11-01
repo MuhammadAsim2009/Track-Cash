@@ -29,6 +29,7 @@ class Udhaar {
     this.walletId,
     required this.personName,
     required this.amount,
+    this.paidAmount = 0,
     required this.direction,
     required this.dueDate,
     this.status = UdhaarStatus.pending,
@@ -44,8 +45,10 @@ class Udhaar {
   final String userId;
   final String? walletId;
   final String personName;
-  /// Amount in whole rupees.
+  /// Total original loan amount in whole rupees.
   final int amount;
+  /// Total amount settled / returned so far.
+  final int paidAmount;
   final UdhaarDirection direction;
   final DateTime dueDate;
   final UdhaarStatus status;
@@ -56,12 +59,19 @@ class Udhaar {
   final bool isDeleted;
   final bool synced;
 
+  /// Remaining unpaid balance.
+  int get remainingAmount => (amount - paidAmount).clamp(0, amount);
+
+  /// True if partially paid but not fully settled.
+  bool get isPartiallyPaid => paidAmount > 0 && paidAmount < amount;
+
   Udhaar copyWith({
     String? id,
     String? userId,
     String? walletId,
     String? personName,
     int? amount,
+    int? paidAmount,
     UdhaarDirection? direction,
     DateTime? dueDate,
     UdhaarStatus? status,
@@ -78,6 +88,7 @@ class Udhaar {
       walletId: walletId ?? this.walletId,
       personName: personName ?? this.personName,
       amount: amount ?? this.amount,
+      paidAmount: paidAmount ?? this.paidAmount,
       direction: direction ?? this.direction,
       dueDate: dueDate ?? this.dueDate,
       status: status ?? this.status,
@@ -99,6 +110,7 @@ class Udhaar {
         other.walletId == walletId &&
         other.personName == personName &&
         other.amount == amount &&
+        other.paidAmount == paidAmount &&
         other.direction == direction &&
         other.dueDate == dueDate &&
         other.status == status &&
@@ -117,6 +129,7 @@ class Udhaar {
         walletId,
         personName,
         amount,
+        paidAmount,
         direction,
         dueDate,
         status,
@@ -135,6 +148,7 @@ class Udhaar {
       'wallet_id': walletId,
       'person_name': personName,
       'amount': amount,
+      'paid_amount': paidAmount,
       'direction': direction.name,
       'due_date': dueDate.toIso8601String(),
       'status': status.name,
@@ -154,6 +168,7 @@ class Udhaar {
       walletId: map['wallet_id'] as String?,
       personName: map['person_name'] as String,
       amount: (map['amount'] as num).toInt(),
+      paidAmount: (map['paid_amount'] as num?)?.toInt() ?? 0,
       direction: UdhaarDirection.values.byName(map['direction'] as String),
       dueDate: DateTime.parse(map['due_date'] as String),
       status: UdhaarStatus.values.byName(map['status'] as String),

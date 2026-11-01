@@ -53,13 +53,13 @@ class _UdhaarScreenState extends ConsumerState<UdhaarScreen>
               .where((u) => u.direction == UdhaarDirection.take)
               .toList();
 
-          // Totals for pending
+          // Totals for pending (uses remainingAmount so partial payments are reflected)
           final totalGive = giveList
               .where((u) => u.status == UdhaarStatus.pending)
-              .fold<int>(0, (sum, u) => sum + u.amount);
+              .fold<int>(0, (sum, u) => sum + u.remainingAmount);
           final totalTake = takeList
               .where((u) => u.status == UdhaarStatus.pending)
-              .fold<int>(0, (sum, u) => sum + u.amount);
+              .fold<int>(0, (sum, u) => sum + u.remainingAmount);
 
           return Column(
             children: [

@@ -26,6 +26,14 @@ abstract class UdhaarRepository {
   /// Marks an udhaar entry as settled, optionally recording which wallet paid/received the settlement.
   Future<void> markAsSettled(String id, {String? settleWalletId});
 
+  /// Partially settles an udhaar entry with a specific repayment [amount].
+  /// If the new total paid amount equals or exceeds the total amount, status becomes settled.
+  Future<void> recordPartialPayment(
+    String id, {
+    required int amount,
+    String? settleWalletId,
+  });
+
   /// Soft-deletes an udhaar entry.
   Future<void> deleteUdhaar(String id);
 }

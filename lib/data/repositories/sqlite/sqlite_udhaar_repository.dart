@@ -122,26 +122,42 @@ class SqliteUdhaarRepository implements UdhaarRepository {
     if (rowsBefore.isEmpty) return;
 
     final existingUdhaar = Udhaar.fromMap(rowsBefore.first);
-    final originalWalletId = existingUdhaar.walletId;
+    final remaining = existingUdhaar.remainingAmount;
+    await recordPartialPayment(id, amount: remaining, settleWalletId: settleWalletId);
+  }
 
-    // If settled using a different wallet, we rebalance with a transfer record
-    // so both wallets reflect the accurate cash flow.
-    // E.g. Borrowed into Easypaisa, but paid back from Savings:
-    // Money moved from Savings to Easypaisa to repay the borrowed amount.
+  @override
+  Future<void> recordPartialPayment(
+    String id, {
+    required int amount,
+    String? settleWalletId,
+  }) async {
+    final db = await _db.database;
+    final rowsBefore = await db.query('udhaar', where: 'id = ?', whereArgs: [id], limit: 1);
+    if (rowsBefore.isEmpty) return;
+
+    final existingUdhaar = Udhaar.fromMap(rowsBefore.first);
+    final originalWalletId = existingUdhaar.walletId;
+    final newPaid = (existingUdhaar.paidAmount + amount).clamp(0, existingUdhaar.amount);
+    final isFullySettled = newPaid >= existingUdhaar.amount;
+
+    // If payment recorded using a different wallet than the original loan wallet,
+    // rebalance with a transfer record for this payment chunk.
     if (settleWalletId != null &&
         originalWalletId != null &&
-        settleWalletId != originalWalletId) {
+        settleWalletId != originalWalletId &&
+        amount > 0) {
       final now = DateTime.now();
       final nowIso = now.toIso8601String();
       if (existingUdhaar.direction == UdhaarDirection.give) {
-        // Paying back debt using settleWalletId -> transfer from settleWalletId to originalWalletId
+        // Paying debt using settleWalletId -> transfer from settleWalletId to originalWalletId
         final transferId = 'transfer_settle_${id}_${now.millisecondsSinceEpoch}';
         await db.insert('transfers', {
           'id': transferId,
           'user_id': _userId,
           'from_wallet_id': settleWalletId,
           'to_wallet_id': originalWalletId,
-          'amount': existingUdhaar.amount,
+          'amount': amount,
           'note': 'Repayment for udhaar (${existingUdhaar.personName})',
           'date': nowIso,
           'created_at': nowIso,
@@ -154,14 +170,14 @@ class SqliteUdhaarRepository implements UdhaarRepository {
           unawaited(_sync.pushTransfer(Transfer.fromMap(transferRows.first)));
         }
       } else {
-        // Collected owed money into settleWalletId -> transfer from originalWalletId to settleWalletId
+        // Collected money into settleWalletId -> transfer from originalWalletId to settleWalletId
         final transferId = 'transfer_settle_${id}_${now.millisecondsSinceEpoch}';
         await db.insert('transfers', {
           'id': transferId,
           'user_id': _userId,
           'from_wallet_id': originalWalletId,
           'to_wallet_id': settleWalletId,
-          'amount': existingUdhaar.amount,
+          'amount': amount,
           'note': 'Settlement received for udhaar (${existingUdhaar.personName})',
           'date': nowIso,
           'created_at': nowIso,
@@ -179,7 +195,8 @@ class SqliteUdhaarRepository implements UdhaarRepository {
     await db.update(
       'udhaar',
       {
-        'status': UdhaarStatus.settled.name,
+        'paid_amount': newPaid,
+        'status': isFullySettled ? UdhaarStatus.settled.name : UdhaarStatus.pending.name,
         'updated_at': DateTime.now().toIso8601String(),
         'synced': 0,
       },
@@ -187,7 +204,7 @@ class SqliteUdhaarRepository implements UdhaarRepository {
       whereArgs: [id],
     );
     notifyListeners();
-    // Query directly (no status filter) to push settled state to Firestore
+    // Query directly to push updated state to Firestore
     final rows = await db.query('udhaar', where: 'id = ?', whereArgs: [id], limit: 1);
     if (rows.isNotEmpty) unawaited(_sync.pushUdhaar(Udhaar.fromMap(rows.first)));
   }

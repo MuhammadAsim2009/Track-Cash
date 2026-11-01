@@ -10,6 +10,7 @@ import '../../budget/screens/budget_screen.dart';
 import '../../budget/screens/set_budget_screen.dart';
 import '../../categories/screens/categories_screen.dart';
 import '../../dashboard/screens/dashboard_screen.dart';
+import '../../profile/screens/profile_screen.dart';
 import '../../transactions/screens/add_edit_transaction_screen.dart';
 import '../../transactions/screens/transactions_screen.dart';
 import '../../transfers/screens/transfers_screen.dart';
@@ -18,6 +19,7 @@ import '../../udhaar/screens/udhaar_screen.dart';
 import '../providers/navigation_provider.dart';
 
 enum MoreMenuAction {
+  profile,
   categories,
   transfers,
   theme,
@@ -76,6 +78,11 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
 
   void _onMenuActionSelected(MoreMenuAction action) {
     switch (action) {
+      case MoreMenuAction.profile:
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const ProfileScreen()),
+        );
+        break;
       case MoreMenuAction.categories:
         Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const CategoriesScreen()),
@@ -213,6 +220,16 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
             tooltip: 'More',
             onSelected: _onMenuActionSelected,
             itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: MoreMenuAction.profile,
+                child: Row(
+                  children: [
+                    Icon(Icons.person_outline, size: 20),
+                    SizedBox(width: 12),
+                    Text('Profile & Settings'),
+                  ],
+                ),
+              ),
               const PopupMenuItem(
                 value: MoreMenuAction.categories,
                 child: Row(

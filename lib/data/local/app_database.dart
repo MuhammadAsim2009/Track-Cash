@@ -29,7 +29,7 @@ class AppDatabase {
 
     return await openDatabase(
       path,
-      version: 5,
+      version: 6,
       onCreate: _onCreate,
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -54,6 +54,11 @@ class AppDatabase {
           try {
             await db.execute('ALTER TABLE wallets ADD COLUMN current_balance INTEGER NOT NULL DEFAULT 0;');
             await db.execute('UPDATE wallets SET current_balance = opening_balance;');
+          } catch (_) {}
+        }
+        if (oldVersion < 6) {
+          try {
+            await db.execute('ALTER TABLE udhaar ADD COLUMN paid_amount INTEGER NOT NULL DEFAULT 0;');
           } catch (_) {}
         }
       },
@@ -149,6 +154,7 @@ class AppDatabase {
         wallet_id TEXT,
         person_name TEXT NOT NULL,
         amount INTEGER NOT NULL,
+        paid_amount INTEGER NOT NULL DEFAULT 0,
         direction TEXT NOT NULL,
         due_date TEXT NOT NULL,
         status TEXT NOT NULL,
