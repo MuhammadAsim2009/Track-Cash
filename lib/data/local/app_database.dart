@@ -29,7 +29,7 @@ class AppDatabase {
 
     return await openDatabase(
       path,
-      version: 6,
+      version: 7,
       onCreate: _onCreate,
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -59,6 +59,74 @@ class AppDatabase {
         if (oldVersion < 6) {
           try {
             await db.execute('ALTER TABLE udhaar ADD COLUMN paid_amount INTEGER NOT NULL DEFAULT 0;');
+          } catch (_) {}
+        }
+        if (oldVersion < 7) {
+          try {
+            // Update old "Project Earning" to "Freelance / Projects" if present
+            await db.update(
+              'categories',
+              {'name': 'Freelance / Projects'},
+              where: "type = 'income' AND (name = 'Project Earning' OR name = 'Project')",
+            );
+
+            // Fetch existing users who have categories seeded
+            final usersResult = await db.rawQuery(
+              "SELECT DISTINCT user_id FROM categories WHERE type = 'income'",
+            );
+            final now = DateTime.now().toIso8601String();
+
+            for (final row in usersResult) {
+              final uid = row['user_id'] as String;
+
+              // Check if Salary exists for this user
+              final hasSalary = await db.query(
+                'categories',
+                where: "user_id = ? AND type = 'income' AND name = 'Salary'",
+                whereArgs: [uid],
+                limit: 1,
+              );
+              if (hasSalary.isEmpty) {
+                await db.insert('categories', {
+                  'id': 'cat_salary_$uid',
+                  'user_id': uid,
+                  'name': 'Salary',
+                  'type': 'income',
+                  'icon': 'attach_money',
+                  'color': 0xFF10B981,
+                  'is_default': 1,
+                  'is_hidden': 0,
+                  'created_at': now,
+                  'updated_at': now,
+                  'is_deleted': 0,
+                  'synced': 0,
+                });
+              }
+
+              // Check if Gift exists for this user
+              final hasGift = await db.query(
+                'categories',
+                where: "user_id = ? AND type = 'income' AND name = 'Gift'",
+                whereArgs: [uid],
+                limit: 1,
+              );
+              if (hasGift.isEmpty) {
+                await db.insert('categories', {
+                  'id': 'cat_gift_$uid',
+                  'user_id': uid,
+                  'name': 'Gift',
+                  'type': 'income',
+                  'icon': 'card_giftcard',
+                  'color': 0xFF8B5CF6,
+                  'is_default': 1,
+                  'is_hidden': 0,
+                  'created_at': now,
+                  'updated_at': now,
+                  'is_deleted': 0,
+                  'synced': 0,
+                });
+              }
+            }
           } catch (_) {}
         }
       },

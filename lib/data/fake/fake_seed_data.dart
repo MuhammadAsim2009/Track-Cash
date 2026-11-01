@@ -22,8 +22,10 @@ const String kCatHealthId = 'cat_health';
 const String kCatEntertainmentId = 'cat_entertainment';
 const String kCatExpenseOtherId = 'cat_expense_other';
 
-const String kCatProjectEarningId = 'cat_project_earning';
+const String kCatSalaryId = 'cat_salary';
+const String kCatFreelanceProjectsId = 'cat_freelance_projects';
 const String kCatPocketMoneyId = 'cat_pocket_money';
+const String kCatGiftId = 'cat_gift';
 const String kCatIncomeOtherId = 'cat_income_other';
 
 /// Realistic initial seed data for Phase 1 UI demo.
@@ -153,14 +155,25 @@ class FakeSeedData {
           createdAt: _now.subtract(const Duration(days: 30)),
           updatedAt: _now.subtract(const Duration(days: 30)),
         ),
-        // Income categories
+        // Income categories: Salary, Freelance / Projects, Pocket Money, Gift, Other
         AppCategory(
-          id: kCatProjectEarningId,
+          id: kCatSalaryId,
           userId: kDemoUserId,
-          name: 'Project Earning',
+          name: 'Salary',
+          type: CategoryType.income,
+          icon: 'attach_money',
+          color: 0xFF10B981, // Emerald-500
+          isDefault: true,
+          createdAt: _now.subtract(const Duration(days: 30)),
+          updatedAt: _now.subtract(const Duration(days: 30)),
+        ),
+        AppCategory(
+          id: kCatFreelanceProjectsId,
+          userId: kDemoUserId,
+          name: 'Freelance / Projects',
           type: CategoryType.income,
           icon: 'work',
-          color: 0xFF10B981, // Emerald-500
+          color: 0xFF059669, // Emerald-600
           isDefault: true,
           createdAt: _now.subtract(const Duration(days: 30)),
           updatedAt: _now.subtract(const Duration(days: 30)),
@@ -177,11 +190,22 @@ class FakeSeedData {
           updatedAt: _now.subtract(const Duration(days: 30)),
         ),
         AppCategory(
+          id: kCatGiftId,
+          userId: kDemoUserId,
+          name: 'Gift',
+          type: CategoryType.income,
+          icon: 'card_giftcard',
+          color: 0xFF8B5CF6, // Purple-500
+          isDefault: true,
+          createdAt: _now.subtract(const Duration(days: 30)),
+          updatedAt: _now.subtract(const Duration(days: 30)),
+        ),
+        AppCategory(
           id: kCatIncomeOtherId,
           userId: kDemoUserId,
           name: 'Other',
           type: CategoryType.income,
-          icon: 'attach_money',
+          icon: 'more_horiz',
           color: 0xFF22C55E, // Green-500
           isDefault: true,
           createdAt: _now.subtract(const Duration(days: 30)),
